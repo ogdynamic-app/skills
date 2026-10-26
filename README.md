@@ -8,7 +8,27 @@ Agent skills for the [ogdynamic](https://github.com/mehedihasan/ogdynamic) OG im
 | -------- | ---------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `canvas` | [`canvas/`](canvas/SKILL.md) | The canvas document format (Fill, CanvasNode, NodeStyle), the validation contract, fonts, dynamic-layer overrides, renders vs public URLs, and the MCP tool workflow |
 
-## Using a skill
+## Installing
+
+### With the skills CLI
+
+Requires Node.js 22.20+. From your project root:
+
+```bash
+# Interactive — pick the skills and the agents to install them to
+npx skills add ogdynamic-app/skills
+
+# Just the canvas skill
+npx skills add ogdynamic-app/skills --skill canvas
+
+# Target a specific agent, e.g. Claude Code
+npx skills add ogdynamic-app/skills --skill canvas -a claude-code
+
+# Install globally (available across projects) instead of the current project
+npx skills add ogdynamic-app/skills --skill canvas -g
+```
+
+### Manually
 
 Point your agent at a skill directory (each contains a `SKILL.md` with YAML frontmatter):
 
