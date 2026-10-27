@@ -6,7 +6,7 @@ Agent skills for [**ogdynamic**](https://ogdynamic.com/), the OG image platform.
 
 | Skill    | Path                          | For                 | What it covers                                                                                                                                                          |
 | -------- | ----------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `canvas` | [`canvas/`](canvas/SKILL.md)  | ogdynamic app users | Designing canvases and OG images: starting from templates, editing designs, fonts, colors, layouts, dynamic content, and publishing. `SKILL.md` stays compact for token efficiency; the full details (font list with weights, every style option with accepted values, size limits) live in [`canvas/reference.md`](canvas/reference.md), loaded only when needed. |
+| `canvas` | [`canvas/`](canvas/SKILL.md)  | ogdynamic app users | Designing canvases and OG images: starting from templates, editing designs, fonts, colors, layouts, dynamic content, and publishing. Everything an agent needs is in the single `SKILL.md` — the full font list with weights, every style option with accepted values, and all size limits included. |
 
 ## Installing
 

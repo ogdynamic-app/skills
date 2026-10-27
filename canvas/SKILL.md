@@ -5,7 +5,7 @@ description: Design ogdynamic canvases (OG/social images) through the ogdynamic 
 
 # ogdynamic canvas skill
 
-A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp/png/jpeg. Edit it via the ogdynamic MCP tools; the same JSON hydrates losslessly in the web editor. Detailed data — full font/weight table, every style property with accepted values, field constraints — lives in [reference.md](reference.md); consult it for exact values before writing styles or picking fonts.
+A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp/png/jpeg. Edit it via the ogdynamic MCP tools; the same JSON hydrates losslessly in the web editor.
 
 ## Workflow
 
@@ -19,46 +19,248 @@ A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp
 
 Top level: `width`, `height` (px, 1–2048), `background` (Fill), `items` (nodes).
 
-**Fill** — plain color, gradient, or raw CSS background-image; `kind` picks the renderer. Keep **all three branches populated**; exactly 4 keys allowed (`kind`, `color`, `gradient`, `image`) — full structure and examples per kind in [reference.md](reference.md):
+### Fill
+
+A background fill — plain color, gradient, or raw CSS background-image. The canvas root carries one, and every node can carry its own (`background`). It must be an **object, never a list**, with **exactly four keys** — unknown keys anywhere (fill, gradient, stop, image) are rejected. `kind` selects which branch renders; keep **all three branches populated** even when inactive (the editor's fill-switcher depends on it); only the branch matching `kind` is strictly required, and it must be well formed.
 
 ```jsonc
 {
-    "kind": "solid", // "solid" | "gradient" | "image"
-    "color": "#0f172a",
-    "gradient": { "type": "linear", "angle": 135, "stops": [
-        { "color": "#fb7185", "position": 0 }, { "color": "#f43f5e", "position": 100 }] },
-    "image": { "source": null }, // any CSS background-image: url(), layered gradients, patterns
+    "kind": "solid",            // "solid" | "gradient" | "image" — required
+    "color": "#0f172a",         // solid branch — any CSS color string, ≤128 chars
+    "gradient": {               // gradient branch — exactly 3 keys
+        "type": "linear",       // "linear" | "radial"
+        "angle": 135,           // number, degrees (used by linear; radial ignores it)
+        "stops": [              // list of stops (required when kind is gradient)
+            { "color": "#4f46e5", "position": 0 },    // color: CSS string ≤128 chars
+            { "color": "#0f172a", "position": 100 },  // position: number 0–100, rendered in order
+        ],
+    },
+    "image": { "source": null }, // image branch — raw CSS background-image, ≤4096 chars
 }
 ```
 
-**Node** — strict 12-key allow-list; unknown keys anywhere are rejected (field-by-field constraints in [reference.md](reference.md)):
+- **`"kind": "solid"`** — plain color. `color` is required; any CSS color works (hex, `rgb()`, `hsl()`, named).
+
+```jsonc
+{ "kind": "solid", "color": "#0f172a",
+  "gradient": { "type": "linear", "angle": 135, "stops": [] },
+  "image": { "source": null } }
+```
+
+- **`"kind": "gradient"`** — linear or radial. `gradient` is required with `type`, `angle`, and `stops`.
+
+```jsonc
+{ "kind": "gradient", "color": "#0f172a",
+  "gradient": { "type": "radial", "angle": 0, "stops": [
+      { "color": "#fb7185", "position": 0 }, { "color": "#f43f5e", "position": 100 }] },
+  "image": { "source": null } }
+```
+
+- **`"kind": "image"`** — raw CSS `background-image` in `source` (≤4096 chars): everything the other two can't express — remote photos via `url()`, layered gradients, repeating patterns. Pair with node style `backgroundSize` / `backgroundPosition` / `backgroundRepeat` to control fitting.
+
+```jsonc
+// A photo
+{ "kind": "image", "color": "#0f172a",
+  "gradient": { "type": "linear", "angle": 135, "stops": [] },
+  "image": { "source": "url('https://assets.ogdynamic.com/template-assets/photo.webp')" } }
+
+// A photo with a darkening overlay (layers, first on top)
+{ "kind": "image", "color": "#0f172a",
+  "gradient": { "type": "linear", "angle": 135, "stops": [] },
+  "image": { "source": "linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url('https://assets.ogdynamic.com/template-assets/photo.webp')" } }
+
+// A grid pattern via repeating gradients
+{ "kind": "image", "color": "#0f172a",
+  "gradient": { "type": "linear", "angle": 135, "stops": [] },
+  "image": { "source": "repeating-linear-gradient(0deg, transparent 0 31px, rgba(148, 163, 184, 0.2) 31px 32px), repeating-linear-gradient(90deg, transparent 0 31px, rgba(148, 163, 184, 0.2) 31px 32px)" } }
+```
+
+### Node
+
+Strict 12-key allow-list; unknown keys anywhere are rejected:
 
 ```jsonc
 {
-    "id": "tpl-title",   // required, unique in doc
+    "id": "tpl-title",   // required, non-empty, ≤100 chars, unique in the document
     "type": "text",      // "text" | "image" | "group"
-    "name": "Title",     // label
-    "width": 940,        // px or "100%"; image nodes REQUIRE width + height
-    "height": 240,       // optional for text/group (auto-size)
+    "name": "Title",     // label (layers panel), ≤100 chars
+    "width": 940,        // px number or CSS length string ≤64 chars ("100%")
+    "height": 240,       // image nodes REQUIRE width + height; text/group may omit
+                         //   (auto-size: text → content, group → in-flow children)
     "style": {},         // camelCase CSS — position lives here, never x/y
-    "text": "Hello",     // text nodes only
-    "src": "https://…",  // image nodes only, remote URL
+    "text": "Hello",     // text nodes only, ≤10,000 chars
+    "src": "https://…",  // image nodes only, remote http(s) URL, ≤2048 chars
     "children": [],      // group nodes only
     "dynamic": true,     // content swappable at render time
-    "fieldId": "title",  // override key
-    "background": {},    // per-node Fill, same contract as root
+    "fieldId": "title",  // override key, `[a-zA-Z0-9][a-zA-Z0-9_]{0,63}`, no leading `_`
+    "background": {},    // per-node Fill, same contract as the root
 }
 ```
 
-**Positioning** — no `x`/`y`: use `"position": "absolute"` + `style.left`/`style.top` (px; they anchor to the canvas). `"position": "static"` joins the flex flow with zero offsets. Full-bleed bands are `"width": "100%"` inside a flex-column group.
+### Positioning
 
-**Style** — camelCase CSS passed to the Takumi engine; scalar values only (bare numbers = px). Groups: layout, sizing, spacing, flexbox, grid, border/radius/outline, background, effects, typography, image. **Never invent a property or value** — the exhaustive list with accepted values is in [reference.md](reference.md).
+No `x`/`y`: use `"position": "absolute"` + `style.left`/`style.top` (px; they anchor to the canvas). `"position": "static"` joins the flex flow with zero offsets. Full-bleed bands are `"width": "100%"` inside a flex-column group.
 
-**Fonts** — `fontFamily` must be an exact registered family, capitalized Google Fonts name (e.g. `"Inter"`, `"Space Grotesk"`, `"Bebas Neue"` — never slugs like `inter` or unregistered families like `Roboto`). Weight 400 exists on every family; 700 on every family except `DM Mono`. Check the family and weight against the full table in [reference.md](reference.md) — unsupported weights silently fall back.
+### Style properties
+
+CamelCase CSS passed verbatim to the Takumi engine. Values are scalar (string, number, boolean); a **bare number means `px`**; strings allow `%`, `rem`, `em`, `calc()`. Colors are any CSS color (hex, `rgb()`, `hsl()`, named). These lists are exhaustive — never invent a property or value.
+
+#### Layout
+
+| Property                            | Values                                                                |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| `position`                          | `static` \| `relative` \| `absolute` \| `fixed`                        |
+| `top` / `right` / `bottom` / `left` | Length                                                                |
+| `display`                           | `none` \| `flex` \| `inline-flex` \| `block` \| `inline` \| `inline-block` \| `grid` |
+| `boxSizing`                         | `content-box` \| `border-box`                                         |
+| `zIndex`                            | number \| `auto`                                                      |
+
+#### Sizing
+
+`width`, `height`, `minWidth`, `minHeight`, `maxWidth` (| `none`), `maxHeight` (| `none`), `aspectRatio` — all Length.
+
+#### Spacing
+
+`margin`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft`, `padding`, `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft` — all Length (shorthand strings like `"8px 16px"` allowed).
+
+#### Flexbox
+
+| Property                          | Values                                                                                                                                    |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `flexDirection`                   | `row` \| `row-reverse` \| `column` \| `column-reverse`                                                                                     |
+| `flexWrap`                        | `nowrap` \| `wrap` \| `wrap-reverse`                                                                                                       |
+| `flexGrow` / `flexShrink`         | number                                                                                                                                    |
+| `flexBasis`                       | Length \| `content`                                                                                                                        |
+| `justifyContent` / `alignContent` | `normal` \| `start` \| `end` \| `flex-start` \| `flex-end` \| `center` \| `stretch` \| `space-between` \| `space-around` \| `space-evenly` |
+| `alignItems` / `alignSelf`        | `normal` \| `start` \| `end` \| `flex-start` \| `flex-end` \| `center` \| `baseline` \| `stretch`                                          |
+| `gap` / `rowGap` / `columnGap`    | Length                                                                                                                                    |
+| `order`                           | number                                                                                                                                    |
+
+#### Grid
+
+`gridTemplateColumns`: string.
+
+#### Border / outline / radius
+
+| Property                                                                                                          | Values                                                                                                          |
+| ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `borderWidth`, `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`                        | Length                                                                                                          |
+| `borderStyle`, `outlineStyle`                                                                                     | `none` \| `hidden` \| `dotted` \| `dashed` \| `solid` \| `double` \| `groove` \| `ridge` \| `inset` \| `outset` |
+| `borderColor`, `outlineColor`                                                                                     | Color                                                                                                           |
+| `borderRadius`, `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius` | Length                                                                                                          |
+| `outlineWidth`                                                                                                    | Length                                                                                                          |
+
+#### Background
+
+| Property             | Values                                   |
+| -------------------- | ---------------------------------------- |
+| `backgroundColor`    | Color                                    |
+| `backgroundImage`    | string (CSS `background-image` value)    |
+| `backgroundSize`     | `auto` \| `cover` \| `contain` \| Length |
+| `backgroundPosition` | string                                   |
+| `backgroundRepeat`   | string                                   |
+
+#### Effects
+
+| Property                                                                                    | Values              |
+| ------------------------------------------------------------------------------------------- | ------------------- |
+| `opacity`                                                                                   | Length (0–1)        |
+| `overflow`, `overflowX`, `overflowY`                                                        | `visible` \| `hidden` \| `clip` |
+| `boxShadow`, `filter`, `backdropFilter`, `mixBlendMode`, `transform`, `rotate`, `clipPath`  | string (CSS value)  |
+| `transformOrigin`                                                                           | Length              |
+
+#### Typography
+
+| Property                                                       | Values                                                       |
+| -------------------------------------------------------------- | ------------------------------------------------------------ |
+| `color`                                                        | Color                                                        |
+| `fontFamily`                                                   | Registered family (table below)                              |
+| `fontSize`, `lineHeight`, `letterSpacing`, `wordSpacing`        | Length                                                       |
+| `fontWeight`                                                   | number from the family's row \| `normal` \| `bold` \| `bolder` \| `lighter` |
+| `fontStyle`                                                    | `normal` \| `italic` \| `oblique`                            |
+| `textAlign`                                                    | `left` \| `right` \| `center` \| `justify` \| `start` \| `end` |
+| `textTransform`                                                | `none` \| `uppercase` \| `lowercase` \| `capitalize`         |
+| `textDecorationLine`                                           | `none` \| `underline` \| `overline` \| `line-through`        |
+| `textDecorationColor`                                          | Color                                                        |
+| `textDecorationThickness`                                      | `auto` \| `from-font` \| Length                              |
+| `textDecorationSkipInk`                                        | `auto` \| `none` (the engine parses only these two)          |
+| `textShadow`, `textOverflow` (`clip` \| `ellipsis` \| string)  | string                                                       |
+| `whiteSpace`                                                   | `normal` \| `pre` \| `nowrap` \| `pre-wrap` \| `pre-line` \| `break-spaces` |
+| `textWrap`                                                     | `wrap` \| `nowrap` \| `balance` \| `pretty`                  |
+| `wordBreak`                                                    | `normal` \| `break-all` \| `keep-all` \| `break-word`        |
+| `overflowWrap`                                                 | `normal` \| `anywhere` \| `break-word`                       |
+| `maxLines`, `lineClamp` (lines before clamping)                | number                                                       |
+
+#### Image
+
+| Property         | Values                                                   |
+| ---------------- | -------------------------------------------------------- |
+| `objectFit`      | `fill` \| `contain` \| `cover` \| `scale-down` \| `none` |
+| `objectPosition` | Length                                                   |
+| `imageRendering` | `auto` \| `smooth` \| `pixelated`                        |
+
+### Fonts
+
+`fontFamily` must be an exact registered family — capitalized Google Fonts name (e.g. `"Inter"`, `"Space Grotesk"` — never slugs like `inter` or unregistered families like `Roboto`). Weight ranges are every 100-step value in the range (e.g. `100–900` = 100, 200, … 900).
+
+| Family              | Weights                 | Family            | Weights       |
+| ------------------- | ----------------------- | ----------------- | ------------- |
+| Alfa Slab One       | 400                     | Montserrat        | 100–900       |
+| Anton               | 400                     | Newsreader        | 200–800       |
+| Architects Daughter | 400                     | Noto Sans         | 100–900       |
+| Archivo Black       | 400                     | Nunito            | 200–1000      |
+| Arvo                | 400, 700                | Nunito Sans       | 200–1000      |
+| Bebas Neue          | 400                     | Old Standard TT   | 400, 700      |
+| Bitter              | 100–900                 | Open Sans         | 300–800       |
+| Bricolage Grotesque | 200–800                 | Oswald            | 200–700       |
+| Caveat              | 400–700                 | Outfit            | 100–900       |
+| Cormorant Garamond  | 300–700                 | Pacifico          | 400           |
+| Crimson Text        | 400, 600, 700           | Permanent Marker  | 400           |
+| Dancing Script      | 400–700                 | Playfair Display  | 400–900       |
+| DM Sans             | 100–1000                | Plus Jakarta Sans | 200–800       |
+| DM Mono             | 300, 400, 500           | Poppins           | 100–900       |
+| DM Serif Display    | 400                     | Proza Libre       | 400–800       |
+| EB Garamond         | 400–800                 | PT Serif          | 400, 700      |
+| Epilogue            | 100–900                 | Public Sans       | 100–900       |
+| Fira Code           | 300–700                 | Raleway           | 100–900       |
+| Fira Sans           | 100–900                 | Roboto Flex       | 100–1000      |
+| Fraunces            | 100–900                 | Roboto Mono       | 100–700       |
+| Geist               | 100–900                 | Roboto Slab       | 100–900       |
+| Great Vibes         | 400                     | Rosarivo          | 400           |
+| IBM Plex Mono       | 100–700                 | Sacramento        | 400           |
+| IBM Plex Sans       | 100–700                 | Satisfy           | 400           |
+| Indie Flower        | 400                     | Source Code Pro   | 200–900       |
+| Inter               | 100–900                 | Source Sans 3     | 200–900       |
+| JetBrains Mono      | 100–800                 | Space Grotesk     | 300–700       |
+| Josefin Slab        | 100–700                 | Space Mono        | 400, 700      |
+| Karla               | 200–800                 | Work Sans         | 100–900       |
+| Lato                | 100, 300, 400, 700, 900 | Zilla Slab        | 300–700       |
+| Libre Baskerville   | 400–700                 |                   |               |
+| Libre Franklin      | 100–900                 |                   |               |
+| Lobster             | 400                     |                   |               |
+| Lora                | 400–700                 |                   |               |
+| Manrope             | 200–800                 |                   |               |
+| Merriweather        | 300–900                 |                   |               |
+
+`fontWeight` also accepts the keywords `normal` (= 400) and `bold` (= 700). An unsupported weight silently falls back to the family's first available weight — if a headline renders thinner than requested, the weight wasn't in the row.
 
 ## Limits
 
-Validation is strict — a passing document always renders, so fix errors instead of retrying blind: sides 1–2048px · ≤500 nodes · depth ≤32 · `text` ≤10k chars · `src` ≤2048 chars · `fieldId` `[a-zA-Z0-9][a-zA-Z0-9_]{0,63}` (no leading `_` — reserved for the app) · style values scalar, ≤2000 chars.
+Validation is strict — a passing document always renders, so fix errors instead of retrying blind. Enforced on every write (editor save and `update_canvas` share the rules).
+
+| Constraint                     | Limit                             |
+| ------------------------------ | --------------------------------- |
+| Canvas sides                   | 1–2048 px                         |
+| Nodes per doc                  | 500                               |
+| Nesting depth                  | 32                                |
+| `text`                         | 10,000 chars                      |
+| `src`                          | 2,048 chars                       |
+| `fieldId`                      | `[a-zA-Z0-9][a-zA-Z0-9_]{0,63}`   |
+| Style values                   | scalar, ≤2000 chars each          |
+| Fill `color` / stop `color`    | ≤128 chars                        |
+| Fill `source`                  | ≤4096 chars                       |
+| `id` / `name`                  | ≤100 chars                        |
+| Node size strings              | ≤64 chars                         |
 
 ## Dynamic overrides
 
