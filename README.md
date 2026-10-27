@@ -1,12 +1,12 @@
 # ogdynamic-skills
 
-Agent skills for the [ogdynamic](https://github.com/mehedihasan/ogdynamic) OG image platform — the document contracts, authoring rules, and tool workflows agents need to design and render images correctly.
+Agent skills for **ogdynamic**, the OG image platform. They teach AI agents how to design canvases and generate OG images for ogdynamic users.
 
 ## Skills
 
-| Skill    | Path             | For                | What it covers                                                                    |
-| -------- | ---------------- | ------------------- | --------------------------------------------------------------------------------- |
-| `canvas` | [`canvas/`](canvas/SKILL.md) | ogdynamic app users | Designing canvases via the ogdynamic MCP tools: document format, fonts, validation limits, dynamic overrides, renders. `SKILL.md` stays compact for token efficiency; exhaustive data (font/weight table, every style property with accepted values, field constraints) lives in [`canvas/reference.md`](canvas/reference.md), loaded only when needed. |
+| Skill    | Path                          | For                 | What it covers                                                                                                                                                          |
+| -------- | ----------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `canvas` | [`canvas/`](canvas/SKILL.md)  | ogdynamic app users | Designing canvases and OG images: starting from templates, editing designs, fonts, colors, layouts, dynamic content, and publishing. `SKILL.md` stays compact for token efficiency; the full details (font list with weights, every style option with accepted values, size limits) live in [`canvas/reference.md`](canvas/reference.md), loaded only when needed. |
 
 ## Installing
 
@@ -30,11 +30,4 @@ npx skills add ogdynamic-app/skills --skill canvas -g
 
 ### Manually
 
-Point your agent at a skill directory (each contains a `SKILL.md` with YAML frontmatter):
-
-- **ZCode / Claude Code / most agents**: copy or symlink the skill folder into `.agents/skills/` (project) or `~/.agents/skills/` (user) — e.g. `ln -s "$PWD/canvas" .agents/skills/canvas`.
-- **ogdynamic MCP clients**: the app serves the canvas skill at `skill://canvas/SKILL.md` (from `resources/skills/canvas/SKILL.md` in the app repo). When the contract changes here, sync that copy.
-
-## Source of truth
-
-The canvas contract is defined in the ogdynamic app: validation rules (`app/Rules/CanvasFill.php`, `app/Rules/CanvasItems.php`), the render service (`ogdynamic-rs`), and the feature docs (`docs/canvas/`). Skills in this repo describe that contract — they never redefine it. When the app changes, update the skill here first, then sync.
+Each skill is a folder with a `SKILL.md` inside. Copy or symlink the folder into your agent's skills directory — `.agents/skills/` for the current project, `~/.agents/skills/` for all projects.
