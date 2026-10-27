@@ -147,7 +147,8 @@ CamelCase CSS passed verbatim to the Takumi engine. Values are scalar (string, n
 | `borderWidth`, `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`                        | Length                                                                                                          |
 | `borderStyle`, `outlineStyle`                                                                                     | `none` \| `hidden` \| `dotted` \| `dashed` \| `solid` \| `double` \| `groove` \| `ridge` \| `inset` \| `outset` |
 | `borderColor`, `outlineColor`                                                                                     | Color                                                                                                           |
-| `borderRadius`, `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius` | Length                                                                                                          |
+| `borderRadius` — **use this for all corner rounding**                                                              | Length, 1–4 values (`tl tr br bl`), or elliptical `widths / heights` for blob/organic shapes: `"62% 55% 45% 58% / 38% 45% 55% 42%"` |
+| `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius`                 | Length or `"h v"` pair — only when a single corner must differ; otherwise prefer the `borderRadius` shorthand    |
 | `outlineWidth`                                                                                                    | Length                                                                                                          |
 
 #### Background
@@ -272,6 +273,7 @@ Validation is strict — a passing document always renders, so fix errors instea
 - Every node gets `id`, `type`, `name`, `children: []`; every `background` is a complete Fill (all three branches).
 - Wrap the layout in one root Body group (`"100%"` × `"100%"`, flex column); keep 64–80px edge padding; give copy generous fixed heights.
 - Pills/buttons: style the **text node itself** (backgroundColor + borderRadius + vertical-centering padding) — never a wrapper group around lone text.
+- Round corners with a single `borderRadius` — it takes 1–4 values and the elliptical `widths / heights` syntax (e.g. `"borderRadius": "62% 55% 45% 58% / 38% 45% 55% 42%"` for a blob), which replaces four `"h v"` per-corner keys. Use the per-corner keys only when one corner must differ.
 - Mark main copy `dynamic: true` with readable `fieldId`s (`title`, `author`, `cta`); use readable unique ids (`tpl-title`).
 - Never: `x`/`y`, kebab-case styles, nested style values, invented keys, `_`-prefixed fieldIds, hardcoded image-service URLs (use returned `image_url`s).
 
