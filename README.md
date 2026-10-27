@@ -1,6 +1,6 @@
 # ogdynamic-skills
 
-Agent skills for **ogdynamic**, the OG image platform. They teach AI agents how to design canvases and generate OG images for ogdynamic users.
+Agent skills for [**ogdynamic**](https://ogdynamic.com/), the OG image platform. They teach AI agents how to design canvases and generate OG images for ogdynamic users.
 
 ## Skills
 
