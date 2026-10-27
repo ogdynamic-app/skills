@@ -1,5 +1,5 @@
 ---
-name: canvas
+name: ogdynamic-canvas
 description: Design ogdynamic canvases (OG/social images) through the ogdynamic MCP tools — create from templates, edit the document JSON, override dynamic layers, publish renders. Use when creating, editing, or rendering ogdynamic canvases or OG images. Read before authoring a canvas items tree.
 ---
 

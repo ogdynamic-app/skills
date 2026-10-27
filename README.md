@@ -6,7 +6,7 @@ Agent skills for [**ogdynamic**](https://ogdynamic.com/), the OG image platform.
 
 | Skill    | Path                          | For                 | What it covers                                                                                                                                                          |
 | -------- | ----------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `canvas` | [`canvas/`](canvas/SKILL.md)  | ogdynamic app users | Designing canvases and OG images: starting from templates, editing designs, fonts, colors, layouts, dynamic content, and publishing. Everything an agent needs is in the single `SKILL.md` — the full font list with weights, every style option with accepted values, and all size limits included. |
+| `ogdynamic-canvas` | [`ogdynamic-canvas/`](ogdynamic-canvas/SKILL.md) | ogdynamic app users | Designing canvases and OG images: starting from templates, editing designs, fonts, colors, layouts, dynamic content, and publishing. Everything an agent needs is in the single `SKILL.md` — the full font list with weights, every style option with accepted values, and all size limits included. |
 
 ## Installing
 
@@ -19,13 +19,13 @@ Requires Node.js 22.20+. From your project root:
 npx skills add ogdynamic-app/skills
 
 # Just the canvas skill
-npx skills add ogdynamic-app/skills --skill canvas
+npx skills add ogdynamic-app/skills --skill ogdynamic-canvas
 
 # Target a specific agent, e.g. Claude Code
-npx skills add ogdynamic-app/skills --skill canvas -a claude-code
+npx skills add ogdynamic-app/skills --skill ogdynamic-canvas -a claude-code
 
 # Install globally (available across projects) instead of the current project
-npx skills add ogdynamic-app/skills --skill canvas -g
+npx skills add ogdynamic-app/skills --skill ogdynamic-canvas -g
 ```
 
 ### Manually
