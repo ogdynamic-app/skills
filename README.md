@@ -6,7 +6,7 @@ Agent skills for the [ogdynamic](https://github.com/mehedihasan/ogdynamic) OG im
 
 | Skill    | Path             | For                | What it covers                                                                    |
 | -------- | ---------------- | ------------------- | --------------------------------------------------------------------------------- |
-| `canvas` | [`canvas/`](canvas/SKILL.md) | ogdynamic app users | Designing canvases via the ogdynamic MCP tools: document format, fonts, validation limits, dynamic overrides, renders. Kept intentionally compact for token efficiency. |
+| `canvas` | [`canvas/`](canvas/SKILL.md) | ogdynamic app users | Designing canvases via the ogdynamic MCP tools: document format, fonts, validation limits, dynamic overrides, renders. `SKILL.md` stays compact for token efficiency; exhaustive data (font/weight table, every style property with accepted values, field constraints) lives in [`canvas/reference.md`](canvas/reference.md), loaded only when needed. |
 
 ## Installing
 

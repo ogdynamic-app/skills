@@ -5,7 +5,7 @@ description: Design ogdynamic canvases (OG/social images) through the ogdynamic 
 
 # ogdynamic canvas skill
 
-A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp/png/jpeg. Edit it via the ogdynamic MCP tools; the same JSON hydrates losslessly in the web editor.
+A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp/png/jpeg. Edit it via the ogdynamic MCP tools; the same JSON hydrates losslessly in the web editor. Detailed data — full font/weight table, every style property with accepted values, field constraints — lives in [reference.md](reference.md); consult it for exact values before writing styles or picking fonts.
 
 ## Workflow
 
@@ -31,14 +31,14 @@ Top level: `width`, `height` (px, 1–2048), `background` (Fill), `items` (nodes
 }
 ```
 
-**Node** — strict 12-key allow-list; unknown keys anywhere are rejected:
+**Node** — strict 12-key allow-list; unknown keys anywhere are rejected (field-by-field constraints in [reference.md](reference.md)):
 
 ```jsonc
 {
-    "id": "tpl-title",   // required, unique in doc, ≤100 chars
+    "id": "tpl-title",   // required, unique in doc
     "type": "text",      // "text" | "image" | "group"
-    "name": "Title",     // layers-panel label
-    "width": 940,        // px number or "100%"; image nodes REQUIRE width + height
+    "name": "Title",     // label
+    "width": 940,        // px or "100%"; image nodes REQUIRE width + height
     "height": 240,       // optional for text/group (auto-size)
     "style": {},         // camelCase CSS — position lives here, never x/y
     "text": "Hello",     // text nodes only
@@ -52,13 +52,9 @@ Top level: `width`, `height` (px, 1–2048), `background` (Fill), `items` (nodes
 
 **Positioning** — no `x`/`y`: use `"position": "absolute"` + `style.left`/`style.top` (px; they anchor to the canvas). `"position": "static"` joins the flex flow with zero offsets. Full-bleed bands are `"width": "100%"` inside a flex-column group.
 
-**Style** — camelCase CSS passed to the Takumi engine; scalar values only (bare numbers = px). Available: layout (`position`, `top/right/bottom/left`, `display`, `zIndex`), sizing (`width`/`height` + `min*`/`max*`, `aspectRatio`), spacing (`margin*`, `padding*`), flexbox (`flexDirection`, `flexWrap`, `flexGrow/Shrink/Basis`, `justifyContent`, `alignItems`/`alignContent`/`alignSelf`, `gap`, `order`), border (`border{Side}Width`, `borderStyle`, `borderColor`, `borderRadius` + per-corner), background (`backgroundColor`, `backgroundImage`, `backgroundSize`/`Position`/`Repeat`), effects (`opacity`, `overflow`, `boxShadow`, `filter`, `backdropFilter`, `transform`, `rotate`, `clipPath`, `mixBlendMode`), typography (`color`, `fontFamily`, `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `textAlign`, `textTransform`, `textDecorationLine`, `textShadow`, `whiteSpace`, `wordBreak`, `maxLines`, `lineClamp`), image (`objectFit`, `objectPosition`, `imageRendering`).
+**Style** — camelCase CSS passed to the Takumi engine; scalar values only (bare numbers = px). Groups: layout, sizing, spacing, flexbox, grid, border/radius/outline, background, effects, typography, image. **Never invent a property or value** — the exhaustive list with accepted values is in [reference.md](reference.md).
 
-**Fonts** — `fontFamily` must be an exact registered family (capitalized Google Fonts name):
-
-`Alfa Slab One, Anton, Architects Daughter, Archivo Black, Arvo, Bebas Neue, Bitter, Bricolage Grotesque, Caveat, Cormorant Garamond, Crimson Text, Dancing Script, DM Sans, DM Mono, DM Serif Display, EB Garamond, Epilogue, Fira Code, Fira Sans, Fraunces, Geist, Great Vibes, IBM Plex Mono, IBM Plex Sans, Indie Flower, Inter, JetBrains Mono, Josefin Slab, Karla, Lato, Libre Baskerville, Libre Franklin, Lobster, Lora, Manrope, Merriweather, Montserrat, Newsreader, Noto Sans, Nunito, Nunito Sans, Old Standard TT, Open Sans, Oswald, Outfit, Pacifico, Permanent Marker, Playfair Display, Plus Jakarta Sans, Poppins, Proza Libre, PT Serif, Public Sans, Raleway, Roboto Flex, Roboto Mono, Roboto Slab, Rosarivo, Sacramento, Satisfy, Source Code Pro, Source Sans 3, Space Grotesk, Space Mono, Work Sans, Zilla Slab`
-
-Weight 400 exists on every family; 700 on every family except `DM Mono` (300–500). The variable families — Bitter, Bricolage Grotesque, DM Sans, Epilogue, Fira Sans, Fraunces, Geist, Inter, Libre Franklin, Montserrat, Newsreader, Noto Sans, Nunito, Nunito Sans, Outfit, Public Sans, Raleway, Roboto Flex, Work Sans — accept any weight 200–800 (most extend further). Other weights may silently fall back to the family's first available.
+**Fonts** — `fontFamily` must be an exact registered family, capitalized Google Fonts name (e.g. `"Inter"`, `"Space Grotesk"`, `"Bebas Neue"` — never slugs like `inter` or unregistered families like `Roboto`). Weight 400 exists on every family; 700 on every family except `DM Mono`. Check the family and weight against the full table in [reference.md](reference.md) — unsupported weights silently fall back.
 
 ## Limits
 
