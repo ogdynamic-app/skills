@@ -68,17 +68,69 @@ The 12-key allow-list. Unknown keys anywhere are rejected.
 
 ## Fill
 
-`kind` selects the active branch; keep all three branches populated (the editor's fill-switcher depends on it).
+A background fill — plain color, gradient, or raw CSS background-image. The canvas root carries one, and every node can carry its own (`background`). It must be an **object, never a list**, with **exactly four keys**: `kind`, `color`, `gradient`, `image`. `kind` selects which branch renders; keep **all three branches populated** even when inactive (the editor's fill-switcher depends on it), with the branch matching `kind` present and well formed.
 
-| Branch     | Fields       | Constraint                                     |
-| ---------- | ------------ | ---------------------------------------------- |
-| `solid`    | `color`      | Any CSS color string, ≤128 chars               |
-| `gradient` | `type`       | `"linear"` \| `"radial"`                       |
-|            | `angle`      | Degrees (used by `linear`)                     |
-|            | `stops[]`    | `{ color, position }`, position 0–100          |
-| `image`    | `source`     | Raw CSS `background-image` value, ≤4096 chars (layered gradients, `url()`, patterns) |
+```jsonc
+{
+    "kind": "solid",            // "solid" | "gradient" | "image" — required
+    "color": "#0f172a",         // solid branch — any CSS color string, ≤128 chars
+    "gradient": {               // gradient branch — exactly 3 keys
+        "type": "linear",       // "linear" | "radial"
+        "angle": 135,           // number, degrees (used by linear)
+        "stops": [              // list of stops (required when kind is gradient)
+            { "color": "#4f46e5", "position": 0 },    // color: CSS string ≤128 chars
+            { "color": "#0f172a", "position": 100 },  // position: number 0–100
+        ],
+    },
+    "image": { "source": null }, // image branch — raw CSS background-image, ≤4096 chars
+}
+```
 
-Only `kind` is required; the branch matching `kind` must be present and well formed. No other keys.
+Unknown keys at any level (fill, gradient, stop, image) are rejected. Only the branch matching `kind` is strictly required; the inactive ones may hold `null`/empty values but should stay present.
+
+### `"kind": "solid"` — plain color
+
+`color` is required. Any CSS color works: hex, `rgb()`, `hsl()`, named colors.
+
+```jsonc
+{ "kind": "solid", "color": "#0f172a",
+  "gradient": { "type": "linear", "angle": 135, "stops": [] },
+  "image": { "source": null } }
+```
+
+### `"kind": "gradient"` — linear or radial
+
+`gradient` is required: `type` (`linear` | `radial`), `angle` in degrees (used by `linear`; `radial` ignores it), and `stops` — each `{ color, position }` with position 0–100, rendered in list order.
+
+```jsonc
+{ "kind": "gradient", "color": "#0f172a",
+  "gradient": { "type": "radial", "angle": 0, "stops": [
+      { "color": "#fb7185", "position": 0 }, { "color": "#f43f5e", "position": 100 }] },
+  "image": { "source": null } }
+```
+
+### `"kind": "image"` — raw CSS background-image
+
+`image.source` is required: a CSS `background-image` value up to 4096 chars. This branch covers everything the other two can't express — remote photos via `url()`, layered gradients, repeating patterns. Combine with node style `backgroundSize` / `backgroundPosition` / `backgroundRepeat` to control fitting.
+
+```jsonc
+// A photo
+{ "kind": "image", "color": "#0f172a",
+  "gradient": { "type": "linear", "angle": 135, "stops": [] },
+  "image": { "source": "url('https://assets.ogdynamic.com/template-assets/photo.webp')" } }
+
+// A photo with a darkening overlay (layers, first on top)
+{ "kind": "image", "color": "#0f172a",
+  "gradient": { "type": "linear", "angle": 135, "stops": [] },
+  "image": { "source": "linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url('https://assets.ogdynamic.com/template-assets/photo.webp')" } }
+
+// A grid pattern via repeating gradients
+{ "kind": "image", "color": "#0f172a",
+  "gradient": { "type": "linear", "angle": 135, "stops": [] },
+  "image": { "source": "repeating-linear-gradient(0deg, transparent 0 31px, rgba(148, 163, 184, 0.2) 31px 32px), repeating-linear-gradient(90deg, transparent 0 31px, rgba(148, 163, 184, 0.2) 31px 32px)" } }
+```
+
+A Fill that passes validation always renders.
 
 ## Style properties
 

@@ -19,7 +19,7 @@ A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp
 
 Top level: `width`, `height` (px, 1–2048), `background` (Fill), `items` (nodes).
 
-**Fill** — keep **all three branches populated**; `kind` picks the renderer:
+**Fill** — plain color, gradient, or raw CSS background-image; `kind` picks the renderer. Keep **all three branches populated**; exactly 4 keys allowed (`kind`, `color`, `gradient`, `image`) — full structure and examples per kind in [reference.md](reference.md):
 
 ```jsonc
 {
@@ -27,7 +27,7 @@ Top level: `width`, `height` (px, 1–2048), `background` (Fill), `items` (nodes
     "color": "#0f172a",
     "gradient": { "type": "linear", "angle": 135, "stops": [
         { "color": "#fb7185", "position": 0 }, { "color": "#f43f5e", "position": 100 }] },
-    "image": { "source": null },
+    "image": { "source": null }, // any CSS background-image: url(), layered gradients, patterns
 }
 ```
 
