@@ -99,7 +99,7 @@ Strict 12-key allow-list; unknown keys anywhere are rejected:
 
 ### Positioning
 
-No `x`/`y`: use `"position": "absolute"` + `style.left`/`style.top` (px; they anchor to the canvas). `"position": "static"` joins the flex flow with zero offsets. Full-bleed bands are `"width": "100%"` inside a flex-column group.
+There is no `x`/`y` on a node — **`style.left` is the x coordinate and `style.top` is the y coordinate**. To move an element, position it `"absolute"` and change `style.left`/`style.top` (px numbers; absolute layers anchor to the canvas). `"position": "static"` joins the flex flow with zero offsets — those layers are moved by flex layout (order, margins), not coordinates. Full-bleed bands are `"width": "100%"` inside a flex-column group.
 
 ### Style properties
 
