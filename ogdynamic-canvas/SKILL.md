@@ -14,7 +14,6 @@ A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp
 3. **Edit** — `update_canvas` (also takes `name`, `width`, `height`, `status`: 1 = public, 2 = private). `items` **replaces the whole tree** — always send it complete, never a patch.
 4. **Serve** — every canvas has a permanent `image_url`: `{OGDYNAMIC_URL}/c/{id}`. Public canvases render directly: `?{fieldId}=value&format=webp|png|jpeg&config[intent]=og|twitter` (URL-encode values). **Never `create_render` for a public canvas.**
 5. **Publish private canvases** — a private URL 403s; one `create_render` publishes it with your overrides baked in. Renders are idempotent (SHA-256 of canvas + overrides) and **track the live canvas** — editing updates existing render URLs, so create a new render only for a *different* override set; check `list_renders` first.
-6. **Verify visually** — a passing write does not guarantee the intended visual. Download the render (in production: `https://cdn.ogdynamic.com/c/{id}`) and actually look at it with **two content variants** — short and long overrides — before calling a design done. For structural refactors: duplicate the canvas, edit the duplicate, compare render hashes (`md5`) to prove equivalence, then delete the duplicate.
 
 ## Document format
 
