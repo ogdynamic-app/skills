@@ -9,11 +9,11 @@ A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp
 
 ## Workflow
 
-1. **Create** — `list_templates`, then `create_canvas` with `template: {ident_name}` (preferred; blank needs `width`+`height` and starts empty).
+1. **Create** — `list_templates`, then `create_canvas` with `template: {ident_name}` (preferred; blank needs `width`+`height`).
 2. **Read first** — `get_canvas` returns the document plus `override_fields`. Always fetch before writing.
-3. **Edit** — `update_canvas` (also takes `name`, `width`, `height`, `status`: 1 = public, 2 = private). `items` **replaces the whole tree** — always send it complete, never a patch.
+3. **Edit** — `update_canvas` (also `name`, `width`, `height`, `status`: 1 = public, 2 = private). `items` **replaces the whole tree** — send it complete, never a patch.
 4. **Serve** — every canvas has a permanent `image_url`: `{OGDYNAMIC_URL}/c/{id}`. Public canvases render directly: `?{fieldId}=value&format=webp|png|jpeg&config[intent]=og|twitter` (URL-encode values). **Never `create_render` for a public canvas.**
-5. **Publish private canvases** — a private URL 403s; one `create_render` publishes it with your overrides baked in. Renders are idempotent (SHA-256 of canvas + overrides) and **track the live canvas** — editing updates existing render URLs, so create a new render only for a *different* override set; check `list_renders` first.
+5. **Publish private canvases** — a private URL 403s; one `create_render` publishes it with overrides baked in. Renders are idempotent (SHA-256 of canvas + overrides) and **track the live canvas** — create a new one only for a *different* override set; check `list_renders` first.
 
 ## Document format
 
@@ -21,61 +21,22 @@ Top level: `width`, `height` (px, 1–2048), `background` (Fill), `items` (nodes
 
 ### Fill
 
-A background fill — plain color, gradient, or raw CSS background-image. The canvas root carries one, and every node can carry its own (`background`). It must be an **object, never a list**, with **exactly four keys** — unknown keys anywhere (fill, gradient, stop, image) are rejected. `kind` selects which branch renders; keep **all three branches populated** even when inactive (the editor's fill-switcher depends on it); only the branch matching `kind` is strictly required, and it must be well formed.
+Plain color, gradient, or layered CSS gradients. The canvas root carries one; every node can carry its own (`background`). Always an **object, never a list**, with **exactly four keys** — `kind` picks the branch that renders; unknown keys anywhere (fill, gradient, stop, image) are rejected. Keep all three branches populated even when inactive (the editor's fill-switcher depends on it).
 
 ```jsonc
-{
-    "kind": "solid",            // "solid" | "gradient" | "image" — required
-    "color": "#0f172a",         // solid branch — any CSS color string, ≤128 chars
-    "gradient": {               // gradient branch — exactly 3 keys
-        "type": "linear",       // "linear" | "radial"
-        "angle": 135,           // number, degrees (used by linear; radial ignores it)
-        "stops": [              // list of stops (required when kind is gradient)
-            { "color": "#4f46e5", "position": 0 },    // color: CSS string ≤128 chars
-            { "color": "#0f172a", "position": 100 },  // position: number 0–100, rendered in order
-        ],
-    },
-    "image": { "source": null }, // image branch — raw CSS background-image, ≤4096 chars
-}
+{ "kind": "solid",               // "solid" | "gradient" | "image" — required
+  "color": "#0f172a",            // solid branch: any CSS color, ≤128 chars
+  "gradient": { "type": "linear", "angle": 135,   // "linear" | "radial"; angle in degrees, linear only
+      "stops": [ { "color": "#4f46e5", "position": 0 },   // rendered in order, position 0–100
+                 { "color": "#0f172a", "position": 100 } ] },
+  "image": { "source": null } }  // image branch: raw CSS background-image, ≤4096 chars
 ```
 
-- **`"kind": "solid"`** — plain color. `color` is required; any CSS color works (hex, `rgb()`, `hsl()`, named).
+- `solid`: renders `color`.
+- `gradient`: renders `gradient` — `type`, `angle`, ordered `stops`.
+- `image`: renders `source` — layered/repeating CSS gradients the other branches can't express, e.g. a grid: `"repeating-linear-gradient(0deg, transparent 0 31px, rgba(148,163,184,.2) 31px 32px), repeating-linear-gradient(90deg, …)"`. Pair with `backgroundSize` / `backgroundPosition` / `backgroundRepeat`.
 
-```jsonc
-{ "kind": "solid", "color": "#0f172a",
-  "gradient": { "type": "linear", "angle": 135, "stops": [] },
-  "image": { "source": null } }
-```
-
-- **`"kind": "gradient"`** — linear or radial. `gradient` is required with `type`, `angle`, and `stops`.
-
-```jsonc
-{ "kind": "gradient", "color": "#0f172a",
-  "gradient": { "type": "radial", "angle": 0, "stops": [
-      { "color": "#fb7185", "position": 0 }, { "color": "#f43f5e", "position": 100 }] },
-  "image": { "source": null } }
-```
-
-- **`"kind": "image"`** — raw CSS `background-image` in `source` (≤4096 chars): everything the other two can't express — remote photos via `url()`, layered gradients, repeating patterns. Pair with node style `backgroundSize` / `backgroundPosition` / `backgroundRepeat` to control fitting.
-
-```jsonc
-// A photo
-{ "kind": "image", "color": "#0f172a",
-  "gradient": { "type": "linear", "angle": 135, "stops": [] },
-  "image": { "source": "url('https://assets.ogdynamic.com/template-assets/photo.webp')" } }
-
-// A photo with a darkening overlay (layers, first on top)
-{ "kind": "image", "color": "#0f172a",
-  "gradient": { "type": "linear", "angle": 135, "stops": [] },
-  "image": { "source": "linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), url('https://assets.ogdynamic.com/template-assets/photo.webp')" } }
-
-// A grid pattern via repeating gradients
-{ "kind": "image", "color": "#0f172a",
-  "gradient": { "type": "linear", "angle": 135, "stops": [] },
-  "image": { "source": "repeating-linear-gradient(0deg, transparent 0 31px, rgba(148, 163, 184, 0.2) 31px 32px), repeating-linear-gradient(90deg, transparent 0 31px, rgba(148, 163, 184, 0.2) 31px 32px)" } }
-```
-
-**Gotcha:** an `image` fill ignores `color` — the base color is **not** composited under the image layers. When layering `url()` photos or patterns, append an opaque base as the **last** layer (layers render top→bottom): `"..., linear-gradient(#f8fafc, #f8fafc)"`.
+**Gotchas:** an `image` fill ignores `color` — it is **not** composited under the layers; end layered strings with an opaque base (`…, linear-gradient(#f8fafc, #f8fafc)`). **Remote photos are not supported in fills — `url()` does not render. Photos go in image nodes (`src`).**
 
 ### Node
 
@@ -94,7 +55,7 @@ Strict 12-key allow-list; unknown keys anywhere are rejected:
                          //   (auto-size: text → content, group → in-flow children)
     "style": {},         // camelCase CSS — position lives here, never x/y
     "text": "Hello",     // text nodes only, ≤10,000 chars
-    "src": "https://…",  // image nodes only, remote http(s) URL, ≤2048 chars
+    "src": "https://…",  // image nodes only, remote http(s) URL, ≤2048 chars — the only way to render a photo
     "children": [],      // group nodes only
     "dynamic": true,     // content swappable at render time
     "fieldId": "title",  // override key, `[a-zA-Z0-9][a-zA-Z0-9_]{0,63}`, no leading `_`
@@ -102,33 +63,48 @@ Strict 12-key allow-list; unknown keys anywhere are rejected:
 }
 ```
 
-**Text gotchas:** a text node with `text: ""` renders as **nothing**, and whitespace-only text (`" "`) normalizes to `null` on save — which then fails validation on the next write. For invisible solid-color boxes and dashed/gradient decorations, use a **group** node with a `background` Fill instead (a Fill renders at the group's `width`×`height`; a text node with only a background collapses).
+**Text gotchas:** `text: ""` renders as **nothing**, and whitespace-only text (`" "`) normalizes to `null` on save — which fails validation on the next write. For invisible solid-color boxes and dashed/gradient decorations, use a **group** node with a `background` Fill instead (a Fill renders at the group's `width`×`height`; a text node with only a background collapses).
 
-### Positioning
+### Layout — flex-first, absolute-last
 
-There is no `x`/`y` on a node — **`style.left` is the x coordinate and `style.top` is the y coordinate**. To move an element, position it `"absolute"` and change `style.left`/`style.top` (px numbers; absolute layers anchor to the canvas). `"position": "static"` joins the flex flow with zero offsets — those layers are moved by flex layout (order, margins), not coordinates. Full-bleed bands are `"width": "100%"` inside a flex-column group.
+There is no `x`/`y` on a node: **`style.left` is the x coordinate and `style.top` is the y coordinate**, and only `position: "absolute"` nodes use them — they anchor to the canvas. Everything else is flow-positioned and moved by flex layout (order, margins, gap), never coordinates. Default to a single flex tree; absolute is only for decorative fixed-size motifs whose position is independent of content length.
 
-### Layout architecture — flex-first, absolute-last
+The canonical document shape — one root Body group, a flexGrow main row, a flow-pinned footer:
 
-Default to a single flex tree; absolute positioning is only for decorative fixed-size motifs whose position is independent of content length.
-
+```jsonc
+"items": [{
+    "id": "body", "type": "group", "width": "100%", "height": "100%",
+    "style": { "display": "flex", "flexDirection": "column", "padding": "88px 80px 40px" },
+    "children": [
+        // Main row — flexGrow 1 pushes the footer to the bottom edge
+        { "id": "main", "type": "group",
+            "style": { "display": "flex", "flexGrow": 1 },
+            "children": [
+                // Copy column — stacks by gap, shrink-wraps via alignItems flex-start
+                { "id": "col", "type": "group",
+                    "style": { "display": "flex", "flexDirection": "column", "gap": 24, "alignItems": "flex-start" },
+                    "children": [
+                        // badge pill: the TEXT node styled directly — backgroundColor,
+                        // borderRadius 999, padding "6px 14px", textTransform uppercase
+                        // title: dynamic, width ~660, maxLines 3, textOverflow "ellipsis"
+                        // description: dynamic, maxLines 4, ellipsis
+                    ] },
+                // Fixed-width panel (node-level width) — logo, photo, or motif
+                { "id": "panel", "type": "group", "width": 360,
+                    "style": { "display": "flex", "alignItems": "center", "justifyContent": "center" } }
+            ] },
+        // Footer — pinned by flow as the sibling after the flexGrow row
+        { "id": "footer", "type": "group", "width": "100%",
+            "style": { "display": "flex", "justifyContent": "space-between", "alignItems": "center" } }
+    ] }]
 ```
-Body (group, "100%" × "100%", flex column, padding "88px 80px 40px 80px")
-├── Main (flex row, alignItems "stretch", flexGrow 1)
-│   ├── Left column (flex column, gap 24, alignItems "flex-start")
-│   │   ├── badge pill (text node: background, radius 999, padding, uppercase)
-│   │   ├── title (dynamic, maxLines 3, textOverflow "ellipsis")
-│   │   └── description (dynamic, maxLines 4, textOverflow "ellipsis")
-│   └── Right column (fixed width, flex column, justifyContent "center", alignItems "center")
-│       └── decorative motif (group)
-└── Footer (flex row, justifyContent "space-between", alignItems "center", width "100%")
-```
 
-- **Content drives position.** Stack copy with `gap` — never hardcode `top` for text; a 2-line vs 3-line title must reflow automatically.
-- **Pin footers by flow**, not coordinates: the footer is a sibling after a `flexGrow: 1` main row, or uses `marginTop: "auto"` inside a full-height column.
-- **`alignItems: "flex-start"` on column containers** so pill/text children shrink-wrap instead of stretching full width; override per child with `alignSelf`.
-- **Guard overflow:** every dynamic text gets `maxLines` + `textOverflow: "ellipsis"` sized for the worst case.
-- Edge padding for 1200×630: 80px sides, ≥40px bottom, 64–96px top depending on header weight.
+- **Content drives position** — stack copy with `gap`, never a hardcoded `top`; a 2-line vs 3-line title must reflow automatically.
+- Pin footers by flow: sibling after a `flexGrow: 1` main row, or `marginTop: "auto"` inside a full-height column.
+- `alignItems: "flex-start"` on columns so pill/text children shrink-wrap (stretch is the default); override per child with `alignSelf`.
+- Guard overflow: every dynamic text gets `maxLines` + `textOverflow: "ellipsis"` sized for the worst case.
+- Edge padding for 1200×630: 80px sides, ≥40px bottom, 64–96px top.
+- Photos are image nodes (`src` + `width`/`height` + `objectFit: "cover"`); for a darkening overlay, lay a group with a semi-transparent gradient `background` above the photo, not a fill `url()`.
 
 ### Style properties
 
@@ -143,6 +119,8 @@ CamelCase CSS passed verbatim to the Takumi engine. Values are scalar (string, n
 | `display`                           | `none` \| `flex` \| `inline-flex` \| `block` \| `inline` \| `inline-block` \| `grid` |
 | `boxSizing`                         | `content-box` \| `border-box`                                         |
 | `zIndex`                            | number \| `auto`                                                      |
+
+`gridTemplateColumns`: string.
 
 #### Sizing
 
@@ -165,27 +143,22 @@ CamelCase CSS passed verbatim to the Takumi engine. Values are scalar (string, n
 | `gap` / `rowGap` / `columnGap`    | Length                                                                                                                                    |
 | `order`                           | number                                                                                                                                    |
 
-#### Grid
-
-`gridTemplateColumns`: string.
-
 #### Border / outline / radius
 
-| Property                                                                                                          | Values                                                                                                          |
-| ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `borderWidth`, `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`                        | Length                                                                                                          |
-| `borderStyle`, `outlineStyle`                                                                                     | `none` \| `hidden` \| `dotted` \| `dashed` \| `solid` \| `double` \| `groove` \| `ridge` \| `inset` \| `outset` |
-| `borderColor`, `outlineColor`                                                                                     | Color                                                                                                           |
-| `borderRadius` — **use this for all corner rounding**                                                              | Length, 1–4 values (`tl tr br bl`), or elliptical `widths / heights` for blob/organic shapes: `"62% 55% 45% 58% / 38% 45% 55% 42%"` |
-| `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius`                 | Length or `"h v"` pair — only when a single corner must differ; otherwise prefer the `borderRadius` shorthand    |
-| `outlineWidth`                                                                                                    | Length                                                                                                          |
+| Property                                                                                            | Values                                                                                                          |
+| --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `borderWidth`, `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`          | Length                                                                                                          |
+| `borderStyle`, `outlineStyle`                                                                       | `none` \| `hidden` \| `dotted` \| `dashed` \| `solid` \| `double` \| `groove` \| `ridge` \| `inset` \| `outset` |
+| `borderColor`, `outlineColor`, `outlineWidth`                                                       | Color / Length                                                                                                  |
+| `borderRadius` — **use this for all corner rounding**                                               | Length, 1–4 values (`tl tr br bl`), or elliptical `widths / heights` for blob/organic shapes: `"62% 55% 45% 58% / 38% 45% 55% 42%"` |
+| `borderTopLeftRadius` … `borderBottomLeftRadius`                                                    | Length or `"h v"` pair — only when a single corner must differ                                                  |
 
 #### Background
 
 | Property             | Values                                   |
 | -------------------- | ---------------------------------------- |
 | `backgroundColor`    | Color                                    |
-| `backgroundImage`    | string (CSS `background-image` value)    |
+| `backgroundImage`    | string (CSS `background-image` value — gradients only, no `url()`) |
 | `backgroundSize`     | `auto` \| `cover` \| `contain` \| Length |
 | `backgroundPosition` | string                                   |
 | `backgroundRepeat`   | string                                   |
@@ -231,7 +204,7 @@ CamelCase CSS passed verbatim to the Takumi engine. Values are scalar (string, n
 
 ### Fonts
 
-`fontFamily` must be an exact registered family — capitalized Google Fonts name (e.g. `"Inter"`, `"Space Grotesk"` — never slugs like `inter` or unregistered families like `Roboto`). Weight ranges are every 100-step value in the range (e.g. `100–900` = 100, 200, … 900).
+`fontFamily` must be an exact registered family — capitalized Google Fonts name (e.g. `"Inter"`, `"Space Grotesk"` — never slugs like `inter` or unregistered families like `Roboto`). `fontWeight`: keywords `normal` (=400) / `bold` (=700) or any 100-step number in the family's range; unsupported weights silently fall back to the family's first available one.
 
 | Family              | Weights                 | Family            | Weights       |
 | ------------------- | ----------------------- | ----------------- | ------------- |
@@ -272,8 +245,6 @@ CamelCase CSS passed verbatim to the Takumi engine. Values are scalar (string, n
 | Manrope             | 200–800                 |                   |               |
 | Merriweather        | 300–900                 |                   |               |
 
-`fontWeight` also accepts the keywords `normal` (= 400) and `bold` (= 700). An unsupported weight silently falls back to the family's first available weight — if a headline renders thinner than requested, the weight wasn't in the row.
-
 ## Limits
 
 Validation is strict — a passing document always renders, so fix errors instead of retrying blind. Enforced on every write (editor save and `update_canvas` share the rules).
@@ -296,26 +267,23 @@ Validation is strict — a passing document always renders, so fix errors instea
 
 - **URL** (public canvases): `?{fieldId}=value` replaces the node's `text` (or `src` for an image node). Unknown keys are ignored.
 - **Renders** (`create_render` `override`): `{fieldId: {…}}` — text layers take `content`/`color`/`backgroundColor`, image layers `src`/`backgroundColor`, groups `backgroundColor`. Unknown fields or wrong props are **rejected** with the list of what the canvas actually has. Colors are hex (`#rgb`…`#rrggbbaa`; `transparent` for backgrounds); `content` ≤2000 chars.
-- **Defaults must be publishable**: fill dynamic layers with realistic final-quality copy (fetch the target page's `og:title`/`og:description` when personalizing) — the default render should be usable as-is, never lorem ipsum or placeholder text.
-- **One template per site section, not per page** (home, blog post, product…): sibling pages vary only via query params — a new page must never require a new design.
+- **Defaults must be publishable**: fill dynamic layers with realistic final-quality copy (fetch the target page's `og:title`/`og:description` when personalizing) — never lorem ipsum or placeholders.
+- **One template per site section, not per page** (home, blog post, product…): sibling pages vary only via query params; a new page must never require a new design.
 
 ## Conventions
 
 - Every node gets `id`, `type`, `name`, `children: []`; every `background` is a complete Fill (all three branches).
-- Wrap the layout in one root Body group (`"100%"` × `"100%"`, flex column) and build it flex-first (see Layout architecture).
-- Pills/buttons: style the **text node itself** (backgroundColor + borderRadius + vertical-centering padding) — never a wrapper group around lone text.
-- Round corners with a single `borderRadius` — it takes 1–4 values and the elliptical `widths / heights` syntax (e.g. `"borderRadius": "62% 55% 45% 58% / 38% 45% 55% 42%"` for a blob), which replaces four `"h v"` per-corner keys. Use the per-corner keys only when one corner must differ.
-- Pick a **three-role font set** per design, all from the registered table: a display family for headings, a body family for descriptions, a mono family for kickers/tags/footers.
+- Build the flex-first skeleton from Layout; style pills directly on the text node — never a wrapper group around lone text.
+- Prefer one `borderRadius` (1–4 values, elliptical `w / h` for blobs) over per-corner keys; per-corner only when one corner differs.
+- Pick a **three-role font set** from the registered table: display family for headings, body for descriptions, mono for kickers/tags/footers.
 - Mark main copy `dynamic: true` with readable `fieldId`s (`title`, `author`, `cta`); use readable unique ids (`tpl-title`).
-- Never: `x`/`y`, `style.width`/`style.height` (node-level only), kebab-case styles, CSS shorthands (`border:` → `borderWidth` + `borderStyle` + `borderColor`), nested style values, invented keys, `_`-prefixed fieldIds, hardcoded image-service URLs (use returned `image_url`s).
+- Never: `x`/`y`, `style.width`/`style.height` (node-level only), kebab-case styles, CSS shorthands (`border:` → `borderWidth` + `borderStyle` + `borderColor`), nested style values, invented keys, `_`-prefixed fieldIds, `url()` in any background (photos are image-node `src`), hardcoded image-service URLs (use returned `image_url`s).
 
 ## Pre-flight QA
 
-- Every Fill is a complete object (all three branches, `stops` included); no shorthand/kebab-case keys; nothing outside the 12-key node list.
-- `width`/`height` sit on the node, never inside `style`.
-- No `text: ""` or `text: null` anywhere; invisible boxes are group nodes, not empty text.
-- Dynamic copy has `maxLines` + ellipsis; the footer is pinned by flow (`flexGrow`/`marginTop: "auto"`), not a hardcoded `top`.
-- The render was downloaded and visually checked with ≥2 content variants (short + long), plus `config[intent]=twitter` when that target matters.
+- Fill objects complete (all three branches, `stops`); no shorthand/kebab keys; nothing outside the 12-key node list; sizes on the node, never in `style`.
+- No `text: ""`/`null`; dynamic copy has `maxLines` + ellipsis; footer pinned by flow, not `top`.
+- Render downloaded and visually checked with ≥2 variants (short + long), plus `config[intent]=twitter` when that target matters.
 - Exports roundtrip: strip server fields (`id`, `image_url`, `override_fields`, timestamps); no `null` values anywhere.
 
 ## Tools
@@ -337,7 +305,7 @@ All tools operate only on the authenticated user's own canvases.
 
 ## Example
 
-1200×630 with a badge and an overridable headline:
+1200×630, flex skeleton, badge + overridable headline:
 
 ```jsonc
 {
@@ -346,17 +314,22 @@ All tools operate only on the authenticated user's own canvases.
         "gradient": { "type": "linear", "angle": 135, "stops": [
             { "color": "#4f46e5", "position": 0 }, { "color": "#0f172a", "position": 100 }] },
         "image": { "source": null } },
-    "items": [
-        { "id": "badge", "type": "text", "name": "Badge", "children": [],
-          "style": { "position": "absolute", "left": 80, "top": 64, "backgroundColor": "#14b8a6",
-                     "color": "#042f2e", "fontFamily": "Inter", "fontSize": 20, "fontWeight": "600",
-                     "padding": "8px 16px", "borderRadius": 9999 },
-          "text": "v2.0 is live" },
-        { "id": "headline", "type": "text", "name": "Headline", "width": 1040, "children": [],
-          "dynamic": true, "fieldId": "title",
-          "style": { "position": "absolute", "left": 80, "top": 200, "color": "#f8fafc",
-                     "fontFamily": "Space Grotesk", "fontSize": 72, "fontWeight": "700", "lineHeight": 1.1 },
-          "text": "Ship OG images like a pro" },
-    ],
+    "items": [{
+        "id": "body", "type": "group", "name": "Body", "width": "100%", "height": "100%",
+        "style": { "display": "flex", "flexDirection": "column", "justifyContent": "center",
+                   "padding": "80px" },
+        "children": [
+            { "id": "badge", "type": "text", "name": "Badge", "children": [],
+              "style": { "backgroundColor": "#14b8a6", "color": "#042f2e", "fontFamily": "Inter",
+                         "fontSize": 20, "fontWeight": "600", "padding": "8px 16px",
+                         "borderRadius": 9999, "textTransform": "uppercase" },
+              "text": "v2.0 is live" },
+            { "id": "headline", "type": "text", "name": "Headline", "width": 900, "children": [],
+              "dynamic": true, "fieldId": "title",
+              "style": { "color": "#f8fafc", "fontFamily": "Space Grotesk", "fontSize": 72,
+                         "fontWeight": "700", "lineHeight": 1.1, "marginTop": 24,
+                         "maxLines": 3, "textOverflow": "ellipsis" },
+              "text": "Ship OG images like a pro" }
+        ] }]
 }
 ```
