@@ -86,7 +86,10 @@ Strict 12-key allow-list; unknown keys anywhere are rejected:
     "id": "tpl-title",   // required, non-empty, ≤100 chars, unique in the document
     "type": "text",      // "text" | "image" | "group"
     "name": "Title",     // label (layers panel), ≤100 chars
-    "width": 940,        // px number or CSS length string ≤64 chars ("100%")
+    "width": 940,        // px number or CSS length string ≤64 chars ("100%") —
+                         //   node-level ONLY, never style.width/height: both render,
+                         //   but the web editor's overlay/inspector read only the
+                         //   node property, so style-form sizes drift its hit-boxes
     "height": 240,       // image nodes REQUIRE width + height; text/group may omit
                          //   (auto-size: text → content, group → in-flow children)
     "style": {},         // camelCase CSS — position lives here, never x/y
@@ -143,7 +146,7 @@ CamelCase CSS passed verbatim to the Takumi engine. Values are scalar (string, n
 
 #### Sizing
 
-`width`, `height`, `minWidth`, `minHeight`, `maxWidth` (| `none`), `maxHeight` (| `none`), `aspectRatio` — all Length.
+`minWidth`, `minHeight`, `maxWidth` (| `none`), `maxHeight` (| `none`), `aspectRatio` — all Length. **`width`/`height` are node-level only** (see Node) — style-form sizes render but desync the web editor overlay.
 
 #### Spacing
 
@@ -304,11 +307,12 @@ Validation is strict — a passing document always renders, so fix errors instea
 - Round corners with a single `borderRadius` — it takes 1–4 values and the elliptical `widths / heights` syntax (e.g. `"borderRadius": "62% 55% 45% 58% / 38% 45% 55% 42%"` for a blob), which replaces four `"h v"` per-corner keys. Use the per-corner keys only when one corner must differ.
 - Pick a **three-role font set** per design, all from the registered table: a display family for headings, a body family for descriptions, a mono family for kickers/tags/footers.
 - Mark main copy `dynamic: true` with readable `fieldId`s (`title`, `author`, `cta`); use readable unique ids (`tpl-title`).
-- Never: `x`/`y`, kebab-case styles, CSS shorthands (`border:` → `borderWidth` + `borderStyle` + `borderColor`), nested style values, invented keys, `_`-prefixed fieldIds, hardcoded image-service URLs (use returned `image_url`s).
+- Never: `x`/`y`, `style.width`/`style.height` (node-level only), kebab-case styles, CSS shorthands (`border:` → `borderWidth` + `borderStyle` + `borderColor`), nested style values, invented keys, `_`-prefixed fieldIds, hardcoded image-service URLs (use returned `image_url`s).
 
 ## Pre-flight QA
 
 - Every Fill is a complete object (all three branches, `stops` included); no shorthand/kebab-case keys; nothing outside the 12-key node list.
+- `width`/`height` sit on the node, never inside `style`.
 - No `text: ""` or `text: null` anywhere; invisible boxes are group nodes, not empty text.
 - Dynamic copy has `maxLines` + ellipsis; the footer is pinned by flow (`flexGrow`/`marginTop: "auto"`), not a hardcoded `top`.
 - The render was downloaded and visually checked with ≥2 content variants (short + long), plus `config[intent]=twitter` when that target matters.
