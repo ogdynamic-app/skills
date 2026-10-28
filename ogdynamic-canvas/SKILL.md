@@ -14,6 +14,7 @@ A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp
 3. **Edit** — `update_canvas` (also takes `name`, `width`, `height`, `status`: 1 = public, 2 = private). `items` **replaces the whole tree** — always send it complete, never a patch.
 4. **Serve** — every canvas has a permanent `image_url`: `{OGDYNAMIC_URL}/c/{id}`. Public canvases render directly: `?{fieldId}=value&format=webp|png|jpeg&config[intent]=og|twitter` (URL-encode values). **Never `create_render` for a public canvas.**
 5. **Publish private canvases** — a private URL 403s; one `create_render` publishes it with your overrides baked in. Renders are idempotent (SHA-256 of canvas + overrides) and **track the live canvas** — editing updates existing render URLs, so create a new render only for a *different* override set; check `list_renders` first.
+6. **Verify visually** — a passing write does not guarantee the intended visual. Download the render (in production: `https://cdn.ogdynamic.com/c/{id}`) and actually look at it with **two content variants** — short and long overrides — before calling a design done. For structural refactors: duplicate the canvas, edit the duplicate, compare render hashes (`md5`) to prove equivalence, then delete the duplicate.
 
 ## Document format
 
@@ -75,6 +76,8 @@ A background fill — plain color, gradient, or raw CSS background-image. The ca
   "image": { "source": "repeating-linear-gradient(0deg, transparent 0 31px, rgba(148, 163, 184, 0.2) 31px 32px), repeating-linear-gradient(90deg, transparent 0 31px, rgba(148, 163, 184, 0.2) 31px 32px)" } }
 ```
 
+**Gotcha:** an `image` fill ignores `color` — the base color is **not** composited under the image layers. When layering `url()` photos or patterns, append an opaque base as the **last** layer (layers render top→bottom): `"..., linear-gradient(#f8fafc, #f8fafc)"`.
+
 ### Node
 
 Strict 12-key allow-list; unknown keys anywhere are rejected:
@@ -97,9 +100,33 @@ Strict 12-key allow-list; unknown keys anywhere are rejected:
 }
 ```
 
+**Text gotchas:** a text node with `text: ""` renders as **nothing**, and whitespace-only text (`" "`) normalizes to `null` on save — which then fails validation on the next write. For invisible solid-color boxes and dashed/gradient decorations, use a **group** node with a `background` Fill instead (a Fill renders at the group's `width`×`height`; a text node with only a background collapses).
+
 ### Positioning
 
 There is no `x`/`y` on a node — **`style.left` is the x coordinate and `style.top` is the y coordinate**. To move an element, position it `"absolute"` and change `style.left`/`style.top` (px numbers; absolute layers anchor to the canvas). `"position": "static"` joins the flex flow with zero offsets — those layers are moved by flex layout (order, margins), not coordinates. Full-bleed bands are `"width": "100%"` inside a flex-column group.
+
+### Layout architecture — flex-first, absolute-last
+
+Default to a single flex tree; absolute positioning is only for decorative fixed-size motifs whose position is independent of content length.
+
+```
+Body (group, "100%" × "100%", flex column, padding "88px 80px 40px 80px")
+├── Main (flex row, alignItems "stretch", flexGrow 1)
+│   ├── Left column (flex column, gap 24, alignItems "flex-start")
+│   │   ├── badge pill (text node: background, radius 999, padding, uppercase)
+│   │   ├── title (dynamic, maxLines 3, textOverflow "ellipsis")
+│   │   └── description (dynamic, maxLines 4, textOverflow "ellipsis")
+│   └── Right column (fixed width, flex column, justifyContent "center", alignItems "center")
+│       └── decorative motif (group)
+└── Footer (flex row, justifyContent "space-between", alignItems "center", width "100%")
+```
+
+- **Content drives position.** Stack copy with `gap` — never hardcode `top` for text; a 2-line vs 3-line title must reflow automatically.
+- **Pin footers by flow**, not coordinates: the footer is a sibling after a `flexGrow: 1` main row, or uses `marginTop: "auto"` inside a full-height column.
+- **`alignItems: "flex-start"` on column containers** so pill/text children shrink-wrap instead of stretching full width; override per child with `alignSelf`.
+- **Guard overflow:** every dynamic text gets `maxLines` + `textOverflow: "ellipsis"` sized for the worst case.
+- Edge padding for 1200×630: 80px sides, ≥40px bottom, 64–96px top depending on header weight.
 
 ### Style properties
 
@@ -267,15 +294,26 @@ Validation is strict — a passing document always renders, so fix errors instea
 
 - **URL** (public canvases): `?{fieldId}=value` replaces the node's `text` (or `src` for an image node). Unknown keys are ignored.
 - **Renders** (`create_render` `override`): `{fieldId: {…}}` — text layers take `content`/`color`/`backgroundColor`, image layers `src`/`backgroundColor`, groups `backgroundColor`. Unknown fields or wrong props are **rejected** with the list of what the canvas actually has. Colors are hex (`#rgb`…`#rrggbbaa`; `transparent` for backgrounds); `content` ≤2000 chars.
+- **Defaults must be publishable**: fill dynamic layers with realistic final-quality copy (fetch the target page's `og:title`/`og:description` when personalizing) — the default render should be usable as-is, never lorem ipsum or placeholder text.
+- **One template per site section, not per page** (home, blog post, product…): sibling pages vary only via query params — a new page must never require a new design.
 
 ## Conventions
 
 - Every node gets `id`, `type`, `name`, `children: []`; every `background` is a complete Fill (all three branches).
-- Wrap the layout in one root Body group (`"100%"` × `"100%"`, flex column); keep 64–80px edge padding; give copy generous fixed heights.
+- Wrap the layout in one root Body group (`"100%"` × `"100%"`, flex column) and build it flex-first (see Layout architecture).
 - Pills/buttons: style the **text node itself** (backgroundColor + borderRadius + vertical-centering padding) — never a wrapper group around lone text.
 - Round corners with a single `borderRadius` — it takes 1–4 values and the elliptical `widths / heights` syntax (e.g. `"borderRadius": "62% 55% 45% 58% / 38% 45% 55% 42%"` for a blob), which replaces four `"h v"` per-corner keys. Use the per-corner keys only when one corner must differ.
+- Pick a **three-role font set** per design, all from the registered table: a display family for headings, a body family for descriptions, a mono family for kickers/tags/footers.
 - Mark main copy `dynamic: true` with readable `fieldId`s (`title`, `author`, `cta`); use readable unique ids (`tpl-title`).
-- Never: `x`/`y`, kebab-case styles, nested style values, invented keys, `_`-prefixed fieldIds, hardcoded image-service URLs (use returned `image_url`s).
+- Never: `x`/`y`, kebab-case styles, CSS shorthands (`border:` → `borderWidth` + `borderStyle` + `borderColor`), nested style values, invented keys, `_`-prefixed fieldIds, hardcoded image-service URLs (use returned `image_url`s).
+
+## Pre-flight QA
+
+- Every Fill is a complete object (all three branches, `stops` included); no shorthand/kebab-case keys; nothing outside the 12-key node list.
+- No `text: ""` or `text: null` anywhere; invisible boxes are group nodes, not empty text.
+- Dynamic copy has `maxLines` + ellipsis; the footer is pinned by flow (`flexGrow`/`marginTop: "auto"`), not a hardcoded `top`.
+- The render was downloaded and visually checked with ≥2 content variants (short + long), plus `config[intent]=twitter` when that target matters.
+- Exports roundtrip: strip server fields (`id`, `image_url`, `override_fields`, timestamps); no `null` values anywhere.
 
 ## Tools
 
