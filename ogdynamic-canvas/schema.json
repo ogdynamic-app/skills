@@ -1,0 +1,296 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Canvas template definition",
+    "description": "A predefined canvas template. The document shape matches a persisted canvas exactly (width/height/background/items) — the create flow clones it into a new canvas for the user. The seeder upserts every *.json file in this directory by ident_name and prunes rows that no longer exist, so the files are the source of truth. Hard limits (not expressible here): at most 500 nodes per document and 32 levels of nesting.",
+    "type": "object",
+    "required": [
+        "ident_name",
+        "name",
+        "description",
+        "category",
+        "width",
+        "height",
+        "background",
+        "items"
+    ],
+    "properties": {
+        "$schema": { "type": "string" },
+        "ident_name": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "^[a-z][a-zA-Z0-9]*$",
+            "description": "Stable unique key in camelCase; must match the file name. Used by the seeder (upsert/prune) and the store-from-template flow."
+        },
+        "name": { "type": "string", "maxLength": 150 },
+        "description": { "type": ["string", "null"], "maxLength": 255 },
+        "category": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Size/intent grouping shown as filter chips, e.g. Open Graph, Pinterest, Article, Course, Square."
+        },
+        "width": { "type": "integer", "minimum": 1, "maximum": 2048 },
+        "height": { "type": "integer", "minimum": 1, "maximum": 2048 },
+        "background": { "$ref": "#/definitions/Fill" },
+        "items": {
+            "type": "array",
+            "description": "Root layers. Convention: one root Body group sized \"100%\" × \"100%\" with display: flex holds the layout; build flex-first and use position: absolute only for decorations that must escape the flow.",
+            "items": { "$ref": "#/definitions/CanvasNode" }
+        }
+    },
+    "definitions": {
+        "Fill": {
+            "type": "object",
+            "description": "Background fill — all four keys are always present; kind selects which branch paints. Solid colors use kind solid + color; layered or repeating gradients use kind image + a CSS background-image source. url() never renders — photos go in image nodes (src), not fills.",
+            "required": ["kind", "color", "gradient", "image"],
+            "properties": {
+                "kind": { "enum": ["solid", "gradient", "image"] },
+                "color": {
+                    "type": "string",
+                    "maxLength": 128,
+                    "description": "CSS color. Required in practice when kind is solid."
+                },
+                "gradient": { "$ref": "#/definitions/GradientFill" },
+                "image": { "$ref": "#/definitions/ImageFill" }
+            }
+        },
+        "GradientFill": {
+            "type": "object",
+            "required": ["type", "angle", "stops"],
+            "properties": {
+                "type": { "enum": ["linear", "radial"] },
+                "angle": { "type": "number" },
+                "stops": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/GradientStop" }
+                }
+            }
+        },
+        "GradientStop": {
+            "type": "object",
+            "required": ["color", "position"],
+            "properties": {
+                "color": { "type": "string" },
+                "position": { "type": "number", "minimum": 0, "maximum": 100 }
+            }
+        },
+        "ImageFill": {
+            "type": "object",
+            "required": ["source"],
+            "properties": {
+                "source": {
+                    "anyOf": [
+                        { "type": "null" },
+                        {
+                            "type": "string",
+                            "maxLength": 4096,
+                            "not": { "pattern": "url\\(" }
+                        }
+                    ],
+                    "description": "CSS background-image value: linear-gradient() / radial-gradient() / repeating-linear-gradient() compositions; null when another branch is active. url() is NOT supported by the renderer — use an image node for photos."
+                }
+            }
+        },
+        "CanvasNode": {
+            "type": "object",
+            "description": "One layer. Every node carries id, type, name, children. Text nodes auto-size to their content (omit width/height unless the size is load-bearing, e.g. a wrap constraint); image nodes always declare width + height; group nodes size to in-flow children or take explicit panel sizes.",
+            "required": ["id", "type", "name", "children"],
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Readable unique slug within the document, e.g. \"tpl-title\"."
+                },
+                "type": { "enum": ["text", "image", "group"] },
+                "name": { "type": "string", "maxLength": 100 },
+                "width": {
+                    "$ref": "#/definitions/Length",
+                    "description": "Required on image nodes. On text nodes only when load-bearing (wrap width); on groups for fixed panels. The editor inspector reads this first-class field — never style.width/style.height."
+                },
+                "height": {
+                    "$ref": "#/definitions/Length",
+                    "description": "See width. Image nodes require it."
+                },
+                "style": {
+                    "$ref": "#/definitions/NodeStyle",
+                    "description": "Omit entirely when the node has no styling — never an empty object."
+                },
+                "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000,
+                    "pattern": "\\S",
+                    "description": "Text nodes only. Empty or whitespace-only text renders nothing and breaks the next save — use a group with a background Fill for invisible boxes."
+                },
+                "src": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "pattern": "^https?://",
+                    "description": "Image nodes only — remote http(s) URL."
+                },
+                "children": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/CanvasNode" },
+                    "description": "Group nodes only ([] on text/image)."
+                },
+                "dynamic": {
+                    "type": "boolean",
+                    "description": "Marks content swappable at render time via a flat ?{fieldId}=value query param. Requires fieldId. Dynamic text should pair maxLines (or lineClamp) + textOverflow ellipsis so long overrides truncate instead of overflowing."
+                },
+                "fieldId": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_]{0,63}$",
+                    "description": "Override key, required when dynamic is true. Word characters only; must not start with an underscore (reserved, e.g. _updatedAt, _key)."
+                },
+                "background": {
+                    "$ref": "#/definitions/Fill",
+                    "description": "Optional per-node fill — a Fill renders at the node's width×height."
+                }
+            },
+            "allOf": [
+                {
+                    "if": { "properties": { "type": { "const": "image" } } },
+                    "then": { "required": ["src", "width", "height"] }
+                },
+                {
+                    "if": { "properties": { "type": { "const": "text" } } },
+                    "then": { "required": ["text"] }
+                },
+                {
+                    "if": {
+                        "required": ["dynamic"],
+                        "properties": { "dynamic": { "const": true } }
+                    },
+                    "then": { "required": ["fieldId"] }
+                }
+            ]
+        },
+        "NodeStyle": {
+            "type": "object",
+            "description": "camelCase CSS properties, passed verbatim to the Takumi engine (numbers are px). Canonical rules: flow children of a flex/grid parent need no position and no left/top — the flow owns their placement; position: absolute (with left/top, never bottom/right/inset — those keys are deliberately absent here) is for decorations escaping the flow, position: relative is for parents that anchor them; omit position for normal flow (static is the default — never write it). padding/margin accept 1–4 value shorthand strings; every other property is a longhand (no border:, use borderWidth + borderStyle + borderColor). No kebab-case, no nested values, no null.",
+            "additionalProperties": false,
+            "propertyNames": { "pattern": "^[a-z][a-zA-Z0-9]*$" },
+            "minProperties": 1,
+            "properties": {
+                "position": {
+                    "enum": ["absolute", "relative"],
+                    "description": "Omit for normal flow. absolute escapes it (pair with left/top); relative offsets in place or anchors absolute descendants."
+                },
+                "left": { "$ref": "#/definitions/Length", "description": "Offset for positioned nodes — the only horizontal anchor." },
+                "top": { "$ref": "#/definitions/Length", "description": "Offset for positioned nodes — the only vertical anchor." },
+                "display": { "enum": ["flex", "grid", "block", "inline", "inline-block", "inline-flex", "none"] },
+                "boxSizing": { "enum": ["content-box", "border-box"] },
+                "zIndex": { "type": ["number", "string"] },
+                "order": { "type": "number" },
+                "minWidth": { "$ref": "#/definitions/Length" },
+                "minHeight": { "$ref": "#/definitions/Length" },
+                "maxWidth": { "$ref": "#/definitions/Length", "description": "Length or \"none\"." },
+                "maxHeight": { "$ref": "#/definitions/Length", "description": "Length or \"none\"." },
+                "aspectRatio": { "$ref": "#/definitions/Length" },
+                "margin": { "$ref": "#/definitions/Length", "description": "Shorthand string allowed (\"8px 16px\")." },
+                "marginTop": { "$ref": "#/definitions/Length" },
+                "marginBottom": { "$ref": "#/definitions/Length" },
+                "marginLeft": { "$ref": "#/definitions/Length" },
+                "padding": { "$ref": "#/definitions/Length", "description": "Shorthand string allowed (\"88px 80px 40px\")." },
+                "paddingTop": { "$ref": "#/definitions/Length" },
+                "paddingRight": { "$ref": "#/definitions/Length" },
+                "paddingBottom": { "$ref": "#/definitions/Length" },
+                "paddingLeft": { "$ref": "#/definitions/Length" },
+                "flexDirection": { "enum": ["row", "row-reverse", "column", "column-reverse"] },
+                "flexWrap": { "enum": ["nowrap", "wrap", "wrap-reverse"] },
+                "flexGrow": { "type": "number" },
+                "flexShrink": { "type": "number" },
+                "flexBasis": { "$ref": "#/definitions/Length" },
+                "justifyContent": { "enum": ["normal", "start", "end", "flex-start", "flex-end", "center", "stretch", "space-between", "space-around", "space-evenly"] },
+                "alignItems": { "enum": ["normal", "start", "end", "flex-start", "flex-end", "center", "baseline", "stretch"] },
+                "alignContent": { "enum": ["normal", "start", "end", "flex-start", "flex-end", "center", "stretch", "space-between", "space-around", "space-evenly"] },
+                "alignSelf": { "enum": ["normal", "start", "end", "flex-start", "flex-end", "center", "baseline", "stretch"] },
+                "gap": { "$ref": "#/definitions/Length" },
+                "rowGap": { "$ref": "#/definitions/Length" },
+                "columnGap": { "$ref": "#/definitions/Length" },
+                "gridTemplateColumns": { "type": "string", "description": "Track list, e.g. \"0.6fr 0.4fr\"." },
+                "borderWidth": { "$ref": "#/definitions/Length" },
+                "borderTopWidth": { "$ref": "#/definitions/Length" },
+                "borderRightWidth": { "$ref": "#/definitions/Length" },
+                "borderBottomWidth": { "$ref": "#/definitions/Length" },
+                "borderLeftWidth": { "$ref": "#/definitions/Length" },
+                "borderStyle": { "enum": ["none", "hidden", "dotted", "dashed", "solid", "double", "groove", "ridge", "inset", "outset"] },
+                "borderTopStyle": { "enum": ["none", "hidden", "dotted", "dashed", "solid", "double", "groove", "ridge", "inset", "outset"] },
+                "borderRightStyle": { "enum": ["none", "hidden", "dotted", "dashed", "solid", "double", "groove", "ridge", "inset", "outset"] },
+                "borderBottomStyle": { "enum": ["none", "hidden", "dotted", "dashed", "solid", "double", "groove", "ridge", "inset", "outset"] },
+                "borderLeftStyle": { "enum": ["none", "hidden", "dotted", "dashed", "solid", "double", "groove", "ridge", "inset", "outset"] },
+                "borderColor": { "type": "string" },
+                "borderTopColor": { "type": "string" },
+                "borderRightColor": { "type": "string" },
+                "borderBottomColor": { "type": "string" },
+                "borderLeftColor": { "type": "string" },
+                "borderRadius": {
+                    "$ref": "#/definitions/Length",
+                    "description": "1–4 values and the elliptical \"w% h% / w% h%\" syntax (blob shapes)."
+                },
+                "borderTopLeftRadius": { "$ref": "#/definitions/Length" },
+                "borderTopRightRadius": { "$ref": "#/definitions/Length" },
+                "borderBottomRightRadius": { "$ref": "#/definitions/Length" },
+                "borderBottomLeftRadius": { "$ref": "#/definitions/Length" },
+                "outlineWidth": { "$ref": "#/definitions/Length" },
+                "outlineStyle": { "enum": ["none", "hidden", "dotted", "dashed", "solid", "double", "groove", "ridge", "inset", "outset"] },
+                "outlineColor": { "type": "string" },
+                "backgroundColor": { "type": "string" },
+                "backgroundImage": {
+                    "type": "string",
+                    "not": { "pattern": "url\\(" },
+                    "description": "Layered/repeating CSS gradients only — url() does not render; photos go in image nodes."
+                },
+                "backgroundSize": { "type": "string" },
+                "backgroundPosition": { "type": "string" },
+                "backgroundRepeat": { "type": "string" },
+                "opacity": { "type": ["string", "number"] },
+                "overflow": { "enum": ["visible", "hidden", "clip"] },
+                "overflowX": { "enum": ["visible", "hidden", "clip"] },
+                "overflowY": { "enum": ["visible", "hidden", "clip"] },
+                "boxShadow": { "type": "string" },
+                "filter": { "type": "string" },
+                "backdropFilter": { "type": "string" },
+                "mixBlendMode": { "type": "string" },
+                "transform": { "type": "string" },
+                "transformOrigin": { "$ref": "#/definitions/Length" },
+                "rotate": { "type": "string" },
+                "clipPath": { "type": "string" },
+                "color": { "type": "string" },
+                "fontFamily": {
+                    "type": "string",
+                    "description": "Must be one of the render service's registered families: Alfa Slab One, Anton, Architects Daughter, Archivo Black, Arvo, Bebas Neue, Bitter, Bricolage Grotesque, Caveat, Cormorant Garamond, Crimson Text, Dancing Script, DM Mono, DM Sans, DM Serif Display, EB Garamond, Epilogue, Fira Code, Fira Sans, Fraunces, Geist, Great Vibes, IBM Plex Mono, IBM Plex Sans, Indie Flower, Inter, JetBrains Mono, Josefin Slab, Karla, Lato, Libre Baskerville, Libre Franklin, Lobster, Lora, Manrope, Merriweather, Montserrat, Newsreader, Noto Sans, Nunito, Nunito Sans, Old Standard TT, Open Sans, Oswald, Outfit, Pacifico, Permanent Marker, Playfair Display, Plus Jakarta Sans, Poppins, Proza Libre, PT Serif, Public Sans, Raleway, Roboto Flex, Roboto Mono, Roboto Slab, Rosarivo, Sacramento, Satisfy, Source Code Pro, Source Sans 3, Space Grotesk, Space Mono, Work Sans, Zilla Slab."
+                },
+                "fontSize": { "$ref": "#/definitions/Length" },
+                "fontWeight": { "type": ["number", "string"] },
+                "fontStyle": { "enum": ["normal", "italic", "oblique"] },
+                "lineHeight": { "$ref": "#/definitions/Length" },
+                "letterSpacing": { "$ref": "#/definitions/Length" },
+                "wordSpacing": { "$ref": "#/definitions/Length" },
+                "textAlign": { "enum": ["left", "right", "center", "justify", "start", "end"] },
+                "textTransform": { "enum": ["none", "uppercase", "lowercase", "capitalize"] },
+                "textDecorationLine": { "enum": ["none", "underline", "overline", "line-through"] },
+                "textDecorationColor": { "type": "string" },
+                "textDecorationThickness": { "$ref": "#/definitions/Length" },
+                "textShadow": { "type": "string" },
+                "textOverflow": { "type": "string", "description": "\"clip\" or \"ellipsis\"." },
+                "whiteSpace": { "enum": ["normal", "pre", "nowrap", "pre-wrap", "pre-line", "break-spaces"] },
+                "textWrap": { "enum": ["wrap", "nowrap", "balance", "pretty"] },
+                "wordBreak": { "enum": ["normal", "break-all", "keep-all", "break-word"] },
+                "overflowWrap": { "enum": ["normal", "anywhere", "break-word"] },
+                "maxLines": { "type": "number", "description": "Clamp dynamic copy to N lines — pair with textOverflow: ellipsis." },
+                "lineClamp": { "type": "number", "description": "Alias of maxLines." },
+                "objectFit": { "enum": ["fill", "contain", "cover", "scale-down", "none"] },
+                "imageRendering": { "enum": ["auto", "smooth", "pixelated"] }
+            }
+        },
+        "Length": {
+            "anyOf": [
+                { "type": "number" },
+                { "type": "string", "maxLength": 64 }
+            ],
+            "description": "CSS length — bare numbers are px; strings allow %, ch, and 1–4 value shorthands where noted."
+        }
+    }
+}

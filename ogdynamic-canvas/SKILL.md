@@ -103,101 +103,16 @@ No `x`/`y`: use `"position": "absolute"` + `style.left`/`style.top` (px; they an
 
 ### Style properties
 
-CamelCase CSS passed verbatim to the Takumi engine. Values are scalar (string, number, boolean); a **bare number means `px`**; strings allow `%`, `rem`, `em`, `calc()`. Colors are any CSS color (hex, `rgb()`, `hsl()`, named). These lists are exhaustive — never invent a property or value.
+CamelCase CSS passed verbatim to the Takumi engine. Values are scalar (string, number, boolean); a **bare number means `px`**; strings allow `%`, `rem`, `em`, `calc()`. Colors are any CSS color (hex, `rgb()`, `hsl()`, named).
 
-#### Layout
+The complete machine-readable inventory — every property, enum, and cap — is **`schema.json`**, the JSON Schema (draft-07) file next to this skill. It mirrors the app's `resources/canvas-templates/schema.json` (update both in lockstep) and rejects unknown keys and values, so **validate the document against it before sending**. The rules the schema cannot teach:
 
-| Property                            | Values                                                                |
-| ----------------------------------- | --------------------------------------------------------------------- |
-| `position`                          | `static` \| `relative` \| `absolute` \| `fixed`                        |
-| `top` / `right` / `bottom` / `left` | Length                                                                |
-| `display`                           | `none` \| `flex` \| `inline-flex` \| `block` \| `inline` \| `inline-block` \| `grid` |
-| `boxSizing`                         | `content-box` \| `border-box`                                         |
-| `zIndex`                            | number \| `auto`                                                      |
-
-#### Sizing
-
-`width`, `height`, `minWidth`, `minHeight`, `maxWidth` (| `none`), `maxHeight` (| `none`), `aspectRatio` — all Length.
-
-#### Spacing
-
-`margin`, `marginTop`, `marginRight`, `marginBottom`, `marginLeft`, `padding`, `paddingTop`, `paddingRight`, `paddingBottom`, `paddingLeft` — all Length (shorthand strings like `"8px 16px"` allowed).
-
-#### Flexbox
-
-| Property                          | Values                                                                                                                                    |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `flexDirection`                   | `row` \| `row-reverse` \| `column` \| `column-reverse`                                                                                     |
-| `flexWrap`                        | `nowrap` \| `wrap` \| `wrap-reverse`                                                                                                       |
-| `flexGrow` / `flexShrink`         | number                                                                                                                                    |
-| `flexBasis`                       | Length \| `content`                                                                                                                        |
-| `justifyContent` / `alignContent` | `normal` \| `start` \| `end` \| `flex-start` \| `flex-end` \| `center` \| `stretch` \| `space-between` \| `space-around` \| `space-evenly` |
-| `alignItems` / `alignSelf`        | `normal` \| `start` \| `end` \| `flex-start` \| `flex-end` \| `center` \| `baseline` \| `stretch`                                          |
-| `gap` / `rowGap` / `columnGap`    | Length                                                                                                                                    |
-| `order`                           | number                                                                                                                                    |
-
-#### Grid
-
-`gridTemplateColumns`: string.
-
-#### Border / outline / radius
-
-| Property                                                                                                          | Values                                                                                                          |
-| ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `borderWidth`, `borderTopWidth`, `borderRightWidth`, `borderBottomWidth`, `borderLeftWidth`                        | Length                                                                                                          |
-| `borderStyle`, `outlineStyle`                                                                                     | `none` \| `hidden` \| `dotted` \| `dashed` \| `solid` \| `double` \| `groove` \| `ridge` \| `inset` \| `outset` |
-| `borderColor`, `outlineColor`                                                                                     | Color                                                                                                           |
-| `borderRadius`, `borderTopLeftRadius`, `borderTopRightRadius`, `borderBottomRightRadius`, `borderBottomLeftRadius` | Length                                                                                                          |
-| `outlineWidth`                                                                                                    | Length                                                                                                          |
-
-#### Background
-
-| Property             | Values                                   |
-| -------------------- | ---------------------------------------- |
-| `backgroundColor`    | Color                                    |
-| `backgroundImage`    | string (CSS `background-image` value)    |
-| `backgroundSize`     | `auto` \| `cover` \| `contain` \| Length |
-| `backgroundPosition` | string                                   |
-| `backgroundRepeat`   | string                                   |
-
-#### Effects
-
-| Property                                                                                    | Values              |
-| ------------------------------------------------------------------------------------------- | ------------------- |
-| `opacity`                                                                                   | Length (0–1)        |
-| `overflow`, `overflowX`, `overflowY`                                                        | `visible` \| `hidden` \| `clip` |
-| `boxShadow`, `filter`, `backdropFilter`, `mixBlendMode`, `transform`, `rotate`, `clipPath`  | string (CSS value)  |
-| `transformOrigin`                                                                           | Length              |
-
-#### Typography
-
-| Property                                                       | Values                                                       |
-| -------------------------------------------------------------- | ------------------------------------------------------------ |
-| `color`                                                        | Color                                                        |
-| `fontFamily`                                                   | Registered family (table below)                              |
-| `fontSize`, `lineHeight`, `letterSpacing`, `wordSpacing`        | Length                                                       |
-| `fontWeight`                                                   | number from the family's row \| `normal` \| `bold` \| `bolder` \| `lighter` |
-| `fontStyle`                                                    | `normal` \| `italic` \| `oblique`                            |
-| `textAlign`                                                    | `left` \| `right` \| `center` \| `justify` \| `start` \| `end` |
-| `textTransform`                                                | `none` \| `uppercase` \| `lowercase` \| `capitalize`         |
-| `textDecorationLine`                                           | `none` \| `underline` \| `overline` \| `line-through`        |
-| `textDecorationColor`                                          | Color                                                        |
-| `textDecorationThickness`                                      | `auto` \| `from-font` \| Length                              |
-| `textDecorationSkipInk`                                        | `auto` \| `none` (the engine parses only these two)          |
-| `textShadow`, `textOverflow` (`clip` \| `ellipsis` \| string)  | string                                                       |
-| `whiteSpace`                                                   | `normal` \| `pre` \| `nowrap` \| `pre-wrap` \| `pre-line` \| `break-spaces` |
-| `textWrap`                                                     | `wrap` \| `nowrap` \| `balance` \| `pretty`                  |
-| `wordBreak`                                                    | `normal` \| `break-all` \| `keep-all` \| `break-word`        |
-| `overflowWrap`                                                 | `normal` \| `anywhere` \| `break-word`                       |
-| `maxLines`, `lineClamp` (lines before clamping)                | number                                                       |
-
-#### Image
-
-| Property         | Values                                                   |
-| ---------------- | -------------------------------------------------------- |
-| `objectFit`      | `fill` \| `contain` \| `cover` \| `scale-down` \| `none` |
-| `objectPosition` | Length                                                   |
-| `imageRendering` | `auto` \| `smooth` \| `pixelated`                        |
+- `position`: omit it for normal flow — flex/grid children are placed by the flow and never need `left`/`top`. `absolute` + `left`/`top` escapes the flow (decorations); `relative` anchors them. Never write `static` (it is the default), never `fixed`, and never `bottom`/`right`/`inset` — `left`/`top` are the only anchors.
+- `width`/`height` are node-level only (see Node) — style-form sizes render but desync the web editor overlay.
+- `padding`/`margin` accept 1–4 value shorthand strings; every other property is a longhand (no `border:` — use `borderWidth` + `borderStyle` + `borderColor`).
+- `borderRadius` takes 1–4 values and the elliptical `widths / heights` blob syntax (`"62% 55% 45% 58% / 38% 45% 55% 42%"`); per-corner keys only when a single corner must differ.
+- `backgroundImage` is layered/repeating CSS gradients only — `url()` does not render (see Fill).
+- Dynamic text pairs `maxLines` (or `lineClamp`) with `textOverflow: "ellipsis"` so overrides truncate instead of overflowing.
 
 ### Fonts
 
