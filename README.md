@@ -18,7 +18,7 @@ This repo is a plugin marketplace — add it once, install the plugin, and every
 /plugin marketplace add ogdynamic-app/skills
 ```
 
-Then install the plugin (UI: **marketplace → OGdynamic → Install**, or):
+Then install the plugin (UI: **marketplace → ogdynamic → Install**, or):
 
 ```
 /plugin install ogdynamic@ogdynamic
