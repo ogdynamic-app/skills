@@ -168,7 +168,7 @@
         },
         "NodeStyle": {
             "type": "object",
-            "description": "camelCase CSS properties, passed verbatim to the rendering engine (numbers are px). Canonical rules: flow children of a flex/grid parent need no position and no left/top — the flow owns their placement; position: absolute (with left/top, never bottom/right/inset — those keys are deliberately absent here) is for decorations escaping the flow, position: relative is for parents that anchor them; omit position for normal flow (static is the default — never write it). padding/margin accept 1–4 value shorthand strings; every other property is a longhand (no border:, use borderWidth + borderStyle + borderColor). No kebab-case, no nested values, no null.",
+            "description": "camelCase CSS properties, passed verbatim to the rendering engine (numbers are px). Canonical rules: flow children of a flex/grid parent need no position and no left/top — the flow owns their placement; position: absolute (with left/top, never bottom/right/inset — those keys are deliberately absent here) is for decorations escaping the flow, position: relative is for parents that anchor them; omit position for normal flow (static is the default — never write it). padding/margin/borderWidth accept 1–4 value shorthand strings (borderWidth order: top right bottom left); every other property is a longhand (no all-in-one border:, pair borderWidth with borderStyle + borderColor). No kebab-case, no nested values, no null.",
             "additionalProperties": false,
             "propertyNames": { "pattern": "^[a-z][a-zA-Z0-9]*$" },
             "minProperties": 1,

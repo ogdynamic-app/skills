@@ -116,7 +116,7 @@ The complete machine-readable inventory — every property, enum, and cap — is
 
 - `position`: omit it for normal flow — flex/grid children are placed by the flow and never need `left`/`top`. `absolute` + `left`/`top` escapes the flow (decorations); `relative` anchors them. Never write `static` (it is the default), never `fixed`, and never `bottom`/`right`/`inset` — `left`/`top` are the only anchors.
 - `width`/`height` are node-level only (see Node) — style-form sizes render but desync the web editor overlay.
-- `padding`/`margin` accept 1–4 value shorthand strings; every other property is a longhand (no `border:` — use `borderWidth` + `borderStyle` + `borderColor`).
+- `padding`/`margin`/`borderWidth` accept 1–4 value shorthand strings (`borderWidth` order: top right bottom left); every other property is a longhand (no all-in-one `border:` — pair `borderWidth` with `borderStyle` + `borderColor`).
 - `borderRadius` takes 1–4 values and the elliptical `widths / heights` blob syntax (`"62% 55% 45% 58% / 38% 45% 55% 42%"`); per-corner keys only when a single corner must differ.
 - `backgroundImage` is layered/repeating CSS gradients only — `url()` does not render (see Fill).
 - Dynamic text pairs `maxLines` (or `lineClamp`) with `textOverflow: "ellipsis"` so overrides truncate instead of overflowing.
@@ -211,6 +211,7 @@ Validation is strict — a passing document always renders, so fix errors instea
 - Every node gets `id`, `type`, `name`, `children: []`; every `background` is a complete Fill (all three branches).
 - Build the flex-first skeleton from Layout; style pills directly on the text node — never a wrapper group around lone text.
 - Prefer one `borderRadius` (1–4 values, elliptical `w / h` for blobs) over per-corner keys; per-corner only when one corner differs.
+- **Dividers**: never a dedicated node — give the nearest element a border instead: `borderWidth` (single value = all sides, or 4 values `"top right bottom left"`, e.g. `"0 0 1px 0"` for a bottom rule, `"0 0 0 1px"` for a left rule) + `borderStyle: "solid"` + `borderColor`. Add a sized group node with a solid `background` only when the line must be narrower than that element.
 - Pick a **three-role font set** from the registered table: display family for headings, body for descriptions, mono for kickers/tags/footers.
 - Mark main copy `dynamic: true` with readable `fieldId`s (`title`, `author`, `cta`); use readable unique ids (`tpl-title`).
 - Never: `x`/`y`, `style.width`/`style.height` (node-level only), kebab-case styles, CSS shorthands (`border:` → `borderWidth` + `borderStyle` + `borderColor`), nested style values, invented keys, `_`-prefixed fieldIds, `url()` in any background (photos are image-node `src`), hardcoded image-service URLs (use returned `image_url`s).
