@@ -211,6 +211,7 @@ Validation is strict — a passing document always renders, so fix errors instea
 - Every node gets `id`, `type`, `name`, `children: []`; every `background` is a complete Fill (all three branches).
 - Build the flex-first skeleton from Layout; style pills directly on the text node — never a wrapper group around lone text.
 - Prefer one `borderRadius` (1–4 values, elliptical `w / h` for blobs) over per-corner keys; per-corner only when one corner differs.
+- **Dividers**: never a dedicated node — give the nearest element a border instead: `borderBottomWidth: 1` + `borderStyle: "solid"` + `borderColor` on the element above (or `borderTopWidth` on the one below; vertical rules via `borderLeftWidth`/`borderRightWidth`). Add a sized group node with a solid `background` only when the line must be narrower than that element.
 - Pick a **three-role font set** from the registered table: display family for headings, body for descriptions, mono for kickers/tags/footers.
 - Mark main copy `dynamic: true` with readable `fieldId`s (`title`, `author`, `cta`); use readable unique ids (`tpl-title`).
 - Never: `x`/`y`, `style.width`/`style.height` (node-level only), kebab-case styles, CSS shorthands (`border:` → `borderWidth` + `borderStyle` + `borderColor`), nested style values, invented keys, `_`-prefixed fieldIds, `url()` in any background (photos are image-node `src`), hardcoded image-service URLs (use returned `image_url`s).
