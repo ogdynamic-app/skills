@@ -1,0 +1,19 @@
+{
+    "name": "ogdynamic",
+    "version": "1.0.0",
+    "description": "Skills for designing ogdynamic canvases (OG/social images) via the ogdynamic MCP tools — document format, fonts, layout, dynamic overrides, and render publishing.",
+    "author": {
+        "name": "ogdynamic",
+        "url": "https://ogdynamic.com"
+    },
+    "homepage": "https://ogdynamic.com",
+    "repository": "https://github.com/ogdynamic-app/skills",
+    "keywords": [
+        "ogdynamic",
+        "og-image",
+        "open-graph",
+        "social-media",
+        "seo"
+    ],
+    "skills": "./"
+}
