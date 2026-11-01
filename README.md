@@ -10,6 +10,22 @@ Agent skills for [**ogdynamic**](https://ogdynamic.com/), the OG image platform.
 
 ## Installing
 
+### As a plugin (marketplace)
+
+This repo is a plugin marketplace — add it once, install the plugin, and every skill in it lands in your agent. In Claude Code (or the ZCode plugin panel), click **Add marketplace** and enter the GitHub repo `ogdynamic-app/skills`, or run:
+
+```
+/plugin marketplace add ogdynamic-app/skills
+```
+
+Then install the plugin (UI: **marketplace → OGdynamic → Install**, or):
+
+```
+/plugin install ogdynamic@ogdynamic
+```
+
+Updates to this repo reach installed users through the marketplace's plugin update.
+
 ### With the skills CLI
 
 Requires Node.js 22.20+. From your project root:

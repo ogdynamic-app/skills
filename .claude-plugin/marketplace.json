@@ -1,0 +1,36 @@
+{
+    "name": "ogdynamic",
+    "owner": {
+        "name": "ogdynamic",
+        "url": "https://ogdynamic.com"
+    },
+    "metadata": {
+        "description": "Agent skills for the ogdynamic OG image platform",
+        "version": "1.0.0"
+    },
+    "plugins": [
+        {
+            "name": "ogdynamic",
+            "source": "./",
+            "version": "1.0.0",
+            "description": "Skills for designing ogdynamic canvases (OG/social images) via the ogdynamic MCP tools — document format, fonts, layout, dynamic overrides, and render publishing.",
+            "displayName": "OGdynamic",
+            "category": "productivity",
+            "keywords": [
+                "ogdynamic",
+                "og-image",
+                "open-graph",
+                "social-media",
+                "seo"
+            ],
+            "tags": [
+                "og-image",
+                "social-media",
+                "seo"
+            ],
+            "homepage": "https://ogdynamic.com",
+            "repository": "https://github.com/ogdynamic-app/skills",
+            "icon": "https://ogdynamic.com/favicon.ico"
+        }
+    ]
+}
