@@ -125,10 +125,11 @@ The complete machine-readable inventory — every property, enum, and cap — is
 
 The render service registers a large font set — the canonical list is the fonts index (`https://cdn.ogdynamic.com/fonts/index.json`), far too big to inline here. `fontFamily` must be an **exact registered family** — capitalized Google Fonts name (`"Inter"`, `"Space Grotesk"` — never slugs like `inter` and never unregistered families like `Helvetica`). `fontWeight`: keywords `normal` (=400) / `bold` (=700) or any weight in the family's range below; unsupported weights silently fall back to the family's first available one.
 
-**Before using any font not in the table below, verify it** with the bundled checker (a Node script next to this SKILL.md):
+**Before using any font not in the table below, verify it** with the bundled checker (a Node or Python script next to this SKILL.md — same commands and exit codes; exit 1 = not registered):
 
 ```bash
-node <skill-dir>/scripts/fonts.mjs check "Space Grotesk"   # exact / slug match + weights; exit 1 if unknown
+node <skill-dir>/scripts/fonts.mjs check "Space Grotesk"   # exact / slug match + weights
+python3 <skill-dir>/scripts/fonts.py check "Space Grotesk" # same, without Node
 node <skill-dir>/scripts/fonts.mjs search mono             # substring search over all families
 node <skill-dir>/scripts/fonts.mjs list                    # every registered family
 ```
