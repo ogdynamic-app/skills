@@ -10,6 +10,14 @@ Agent skills for [**ogdynamic**](https://ogdynamic.com/), the OG image platform.
 
 ## Installing
 
+| Platform | How |
+| --- | --- |
+| Claude Code | Plugin marketplace (below) |
+| ZCode | Plugin marketplace (below) |
+| Gemini CLI | `gemini extensions install https://github.com/ogdynamic-app/skills` |
+| Codex, Cursor, Copilot, opencode, Amp, … | `AGENTS.md` at the repo root — clone the repo (or point your agent at it) and the agent picks up the skill pointers automatically |
+| Any agent | Skills CLI (below) or manual copy (below) |
+
 ### As a plugin (marketplace)
 
 This repo is a plugin marketplace — add it once, install the plugin, and every skill in it lands in your agent. In Claude Code (or the ZCode plugin panel), click **Add marketplace** and enter the GitHub repo `ogdynamic-app/skills`, or run:
@@ -25,6 +33,14 @@ Then install the plugin (UI: **marketplace → ogdynamic → Install**, or):
 ```
 
 Updates to this repo reach installed users through the marketplace's plugin update.
+
+### As a Gemini CLI extension
+
+```
+gemini extensions install https://github.com/ogdynamic-app/skills
+```
+
+The extension's `GEMINI.md` context tells Gemini where the skill lives and when to read it; `gemini extensions update ogdynamic` pulls changes.
 
 ### With the skills CLI
 
