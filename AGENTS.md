@@ -21,5 +21,7 @@ This repo distributes agent **skills** for [ogdynamic](https://ogdynamic.com), t
 | Claude Code | `/plugin marketplace add ogdynamic-app/skills`, then `/plugin install ogdynamic@ogdynamic` |
 | ZCode | Plugin Marketplace → Add marketplace → `ogdynamic-app/skills` |
 | Gemini CLI | `gemini extensions install https://github.com/ogdynamic-app/skills` |
+| Codex CLI | `npx skills add ogdynamic-app/skills --skill ogdynamic-canvas -a codex` (or copy into `~/.codex/skills/`) |
+| ChatGPT | upload the `ogdynamic-canvas/` folder as a skill via ChatGPT's build-skills flow (same Agent Skills standard) |
 | Any agent (skills CLI) | `npx skills add ogdynamic-app/skills --skill ogdynamic-canvas` |
 | Manual | copy `ogdynamic-canvas/` into the agent's skills directory (`.agents/skills/`) |

@@ -15,7 +15,9 @@ Agent skills for [**ogdynamic**](https://ogdynamic.com/), the OG image platform.
 | Claude Code | Plugin marketplace (below) |
 | ZCode | Plugin marketplace (below) |
 | Gemini CLI | `gemini extensions install https://github.com/ogdynamic-app/skills` |
-| Codex, Cursor, Copilot, opencode, Amp, … | `AGENTS.md` at the repo root — clone the repo (or point your agent at it) and the agent picks up the skill pointers automatically |
+| Codex CLI | `npx skills add ogdynamic-app/skills --skill ogdynamic-canvas -a codex`, or copy into `~/.codex/skills/` |
+| ChatGPT | Create a skill per OpenAI's [build-skills](https://learn.chatgpt.com/docs/build-skills) flow and upload the `ogdynamic-canvas/` folder — our SKILL.md follows the same Agent Skills standard |
+| Cursor, Copilot, opencode, Amp, … | `AGENTS.md` at the repo root — clone the repo (or point your agent at it) and the agent picks up the skill pointers automatically |
 | Any agent | Skills CLI (below) or manual copy (below) |
 
 ### As a plugin (marketplace)
