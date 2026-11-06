@@ -123,62 +123,46 @@ The complete machine-readable inventory — every property, enum, and cap — is
 
 ### Fonts
 
-`fontFamily` must be an exact registered family — capitalized Google Fonts name (e.g. `"Inter"`, `"Space Grotesk"` — never slugs like `inter` or unregistered families like `Helvetica`). `fontWeight`: keywords `normal` (=400) / `bold` (=700) or any 100-step number in the family's range; unsupported weights silently fall back to the family's first available one.
+The render service registers a large font set — the canonical list is the fonts index (`https://cdn.ogdynamic.com/fonts/index.json`), far too big to inline here. `fontFamily` must be an **exact registered family** — capitalized Google Fonts name (`"Inter"`, `"Space Grotesk"` — never slugs like `inter` and never unregistered families like `Helvetica`). `fontWeight`: keywords `normal` (=400) / `bold` (=700) or any weight in the family's range below; unsupported weights silently fall back to the family's first available one.
+
+**Before using any font not in the table below, verify it** with the bundled checker (a Node or Python script next to this SKILL.md — same commands and exit codes; exit 1 = not registered):
+
+```bash
+node <skill-dir>/scripts/fonts.mjs check "Space Grotesk"   # exact / slug match + weights
+python3 <skill-dir>/scripts/fonts.py check "Space Grotesk" # same, without Node
+node <skill-dir>/scripts/fonts.mjs search mono             # substring search over all families
+node <skill-dir>/scripts/fonts.mjs list                    # every registered family
+```
+
+Popular families (verified against the index):
 
 | Family | Weights | Family | Weights |
 | --- | --- | --- | --- |
-| Alegreya | 400–900 | Libre Franklin | 100–900 |
-| Alfa Slab One | 400 | Literata | 200–900 |
-| Anton | 400 | Lobster | 400 |
-| Architects Daughter | 400 | Lora | 400–700 |
-| Archivo | 100–900 | Manrope | 200–800 |
-| Archivo Black | 400 | Merriweather | 300–900 |
-| Arimo | 400–700 | Montserrat | 100–900 |
-| Arvo | 400, 700 | Mulish | 200–1000 |
-| Assistant | 200–800 | Newsreader | 200–800 |
-| Baloo 2 | 400–800 | Noto Sans | 100–900 |
-| Bebas Neue | 400 | Noto Serif | 100–900 |
-| Bitter | 100–900 | Nunito | 200–1000 |
-| Bodoni Moda | 400–900 | Nunito Sans | 200–1000 |
-| Bricolage Grotesque | 200–800 | Old Standard TT | 400, 700 |
-| Cairo | 200–1000 | Open Sans | 300–800 |
-| Caveat | 400–700 | Oswald | 200–700 |
-| Cinzel | 400–900 | Outfit | 100–900 |
-| Comfortaa | 300–700 | Overpass | 100–900 |
-| Cormorant Garamond | 300–700 | Pacifico | 400 |
-| Crimson Text | 400, 600, 700 | Permanent Marker | 400 |
-| Dancing Script | 400–700 | Playfair Display | 400–900 |
-| DM Mono | 300–500 | Plus Jakarta Sans | 200–800 |
-| DM Sans | 100–1000 | Poppins | 100–900 |
-| DM Serif Display | 400 | Proza Libre | 400–800 |
-| EB Garamond | 400–800 | PT Serif | 400, 700 |
-| Epilogue | 100–900 | Public Sans | 100–900 |
-| Exo 2 | 100–900 | Quicksand | 300–700 |
-| Figtree | 300–900 | Raleway | 100–900 |
-| Fira Code | 300–700 | Red Hat Display | 300–900 |
-| Fira Sans | 100–900 | Red Hat Text | 300–700 |
-| Fraunces | 100–900 | Roboto | 100–900 |
-| Fredoka | 300–700 | Roboto Condensed | 100–900 |
-| Geist | 100–900 | Roboto Flex | 100–1000 |
-| Geist Mono | 100–900 | Roboto Mono | 100–700 |
-| Great Vibes | 400 | Roboto Serif | 100–900 |
-| Hanken Grotesk | 100–900 | Roboto Slab | 100–900 |
-| Heebo | 100–900 | Rosarivo | 400 |
-| IBM Plex Mono | 100–700 | Rubik | 300–900 |
-| IBM Plex Sans | 100–700 | Sacramento | 400 |
-| Inconsolata | 200–900 | Satisfy | 400 |
-| Indie Flower | 400 | Sora | 100–800 |
-| Instrument Sans | 400–700 | Source Code Pro | 200–900 |
-| Inter | 100–900 | Source Sans 3 | 200–900 |
-| Inter Tight | 100–900 | Source Serif 4 | 200–900 |
-| JetBrains Mono | 100–800 | Space Grotesk | 300–700 |
-| Josefin Sans | 100–700 | Space Mono | 400, 700 |
-| Josefin Slab | 100–700 | Syne | 400–800 |
-| Jost | 100–900 | Unbounded | 200–900 |
-| Karla | 200–800 | Urbanist | 100–900 |
-| Lato | 100, 300, 400, 700, 900 | Work Sans | 100–900 |
-| Lexend | 100–900 | Zilla Slab | 300–700 |
-| Libre Baskerville | 400–700 | |  |  |
+| Inter | 100–900 | Quicksand | 300–700 |
+| Roboto | 100–900 | Hanken Grotesk | 100–900 |
+| Open Sans | 300–800 | Public Sans | 100–900 |
+| Montserrat | 100–900 | Heebo | 100–900 |
+| Poppins | 100–900 | Inter Tight | 100–900 |
+| Lato | 100, 300, 400, 700, 900 | Playfair Display | 400–900 |
+| Nunito | 200–1000 | Merriweather | 300–900 |
+| Work Sans | 100–900 | Lora | 400–700 |
+| DM Sans | 100–1000 | PT Serif | 400, 700 |
+| Figtree | 300–900 | Libre Baskerville | 400–700 |
+| Manrope | 200–800 | EB Garamond | 400–800 |
+| Rubik | 300–900 | Cormorant Garamond | 300–700 |
+| Plus Jakarta Sans | 200–800 | Crimson Text | 400, 600, 700 |
+| Outfit | 100–900 | Noto Serif | 100–900 |
+| Urbanist | 100–900 | Source Serif 4 | 200–900 |
+| Sora | 100–800 | JetBrains Mono | 100–800 |
+| Lexend | 100–900 | IBM Plex Mono | 100–700 |
+| Space Grotesk | 300–700 | IBM Plex Sans | 100–700 |
+| Oswald | 200–700 | Source Sans 3 | 200–900 |
+| Bebas Neue | 400 | Fira Sans | 100–900 |
+| Anton | 400 | Geist | 100–900 |
+| Archivo | 100–900 | Caveat | 400–700 |
+| Raleway | 100–900 | Dancing Script | 400–700 |
+| Karla | 200–800 | Pacifico | 400 |
+| Mulish | 200–1000 | Lobster | 400 |
 
 
 ## Limits
