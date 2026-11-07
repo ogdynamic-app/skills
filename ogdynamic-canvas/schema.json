@@ -260,7 +260,7 @@
                 "color": { "type": "string" },
                 "fontFamily": {
                     "type": "string",
-                    "description": "Must be an exact registered family — capitalized Google Fonts name, e.g. \"Inter\", \"Space Grotesk\" (never a slug or an unregistered family). The canonical list is https://cdn.ogdynamic.com/fonts/index.json (313+ families); verify a family (and its weights) with the bundled scripts/fonts.mjs checker."
+                    "description": "Must be an exact registered family — capitalized Google Fonts name, e.g. \"Inter\", \"Space Grotesk\" (never a slug or an unregistered family). The canonical list is https://cdn.ogdynamic.com/fonts/index.json (313+ families); verify a family (and its weights) with the bundled scripts/fonts.py checker."
                 },
                 "fontSize": { "$ref": "#/definitions/Length" },
                 "fontWeight": { "type": ["number", "string"] },
