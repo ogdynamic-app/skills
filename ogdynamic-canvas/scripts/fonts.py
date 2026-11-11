@@ -16,6 +16,8 @@ Options:
   --file <path>   read the index from a local JSON file instead of the CDN
 """
 
+from __future__ import annotations
+
 import json
 import sys
 import urllib.request
@@ -136,4 +138,7 @@ def die(message: str) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as error:  # network/parse problems: exit 2, never 1
+        die(str(error) or error.__class__.__name__)
