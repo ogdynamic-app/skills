@@ -200,7 +200,7 @@
             "properties": {
                 "position": {
                     "enum": ["absolute", "relative"],
-                    "description": "Omit for normal flow. absolute escapes it (pair with left/top); relative offsets in place or anchors absolute descendants."
+                    "description": "Omit for normal flow. absolute escapes it (pair with left/top); relative offsets in place or anchors absolute descendants. An absolute sibling paints over non-positioned content regardless of order — give a content body relative and set zIndex on the floaters to keep the stack intentional."
                 },
                 "left": {
                     "$ref": "#/definitions/Length",
@@ -222,7 +222,7 @@
                     ]
                 },
                 "boxSizing": { "enum": ["content-box", "border-box"] },
-                "zIndex": { "type": ["number", "string"] },
+                "zIndex": { "type": ["number", "string"], "description": "Stacking order among positioned siblings; set it when absolute decorations overlap a content body (the body itself takes position relative)." },
                 "order": { "type": "number" },
                 "width": {
                     "$ref": "#/definitions/Length",

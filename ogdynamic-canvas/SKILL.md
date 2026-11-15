@@ -73,7 +73,7 @@ Strict 11-key allow-list; unknown keys anywhere are rejected:
 
 ### Layout — flex-first, absolute-last
 
-There is no `x`/`y` on a node: **`style.left` is the x coordinate and `style.top` is the y coordinate**, and only `position: "absolute"` nodes use them — they anchor to the canvas. Everything else is flow-positioned and moved by flex layout (order, margins, gap), never coordinates. Default to a single flex tree; absolute is only for decorative fixed-size motifs whose position is independent of content length.
+There is no `x`/`y` on a node: **`style.left` is the x coordinate and `style.top` is the y coordinate**, and only `position: "absolute"` nodes use them — they anchor to the canvas. Everything else is flow-positioned and moved by flex layout (order, margins, gap), never coordinates. Default to a single flex tree; absolute is only for decorative fixed-size motifs whose position is independent of content length — pair them with a `relative` body and `zIndex` so they don't paint over the content (see position rules below).
 
 The canonical document shape — one root Body group, a flexGrow main row, a flow-pinned footer:
 
@@ -121,7 +121,7 @@ CamelCase CSS passed verbatim to the rendering engine. Values are scalar (string
 
 The complete machine-readable inventory — every property, enum, and cap — is **`schema.json`**, the JSON Schema (draft-07) file next to this skill. It mirrors the app's `resources/canvas-templates/schema.json` (update both in lockstep) and rejects unknown keys and values, so **validate the document against it before sending**. The rules the schema cannot teach:
 
-- `position`: omit it for normal flow — flex/grid children are placed by the flow and never need `left`/`top`. `absolute` + `left`/`top` escapes the flow (decorations); `relative` anchors them. Never write `static` (it is the default), never `fixed`, and never `bottom`/`right`/`inset` — `left`/`top` are the only anchors.
+- `position`: omit it for normal flow — flex/grid children are placed by the flow and never need `left`/`top`. `absolute` + `left`/`top` escapes the flow (decorations); `relative` anchors them. **Floating absolute elements beside a content body**: give the body `position: "relative"` — a non-positioned body paints below absolutely positioned siblings no matter the order, so the floats cover the content; with the body `relative`, sibling order and explicit `zIndex` control the stack. Never write `static` (it is the default), never `fixed`, and never `bottom`/`right`/`inset` — `left`/`top` are the only anchors.
 - `width`/`height` are style properties (`style.width`/`style.height`) — there is no first-class size key; the editor overlay and inspector read exactly the style.
 - **Image and shape nodes: always size in px** — give both `style.width` and `style.height` as bare px numbers (`"width": 320, "height": 320`).
 - `padding`/`margin`/`borderWidth` accept 1–4 value shorthand strings (`borderWidth` order: top right bottom left); every other property is a longhand (no all-in-one `border:` — pair `borderWidth` with `borderStyle` + `borderColor`).
