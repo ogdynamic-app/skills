@@ -16,7 +16,7 @@ Agent skills for [**ogdynamic**](https://ogdynamic.com/), the OG image platform.
 | ZCode | Plugin marketplace (below) |
 | Gemini CLI | `gemini extensions install https://github.com/ogdynamic-app/skills` |
 | Codex CLI | `npx skills add ogdynamic-app/skills --skill ogdynamic-canvas -a codex`, or copy into `~/.codex/skills/` |
-| ChatGPT | Create a skill per OpenAI's [build-skills](https://learn.chatgpt.com/docs/build-skills) flow and upload the `ogdynamic-canvas/` folder — our SKILL.md follows the same Agent Skills standard |
+| ChatGPT | MCP connector + skill (below) |
 | Cursor, Copilot, opencode, Amp, … | `AGENTS.md` at the repo root — clone the repo (or point your agent at it) and the agent picks up the skill pointers automatically |
 | Any agent | Skills CLI (below) or manual copy (below) |
 
@@ -43,6 +43,13 @@ gemini extensions install https://github.com/ogdynamic-app/skills
 ```
 
 The extension's `GEMINI.md` context tells Gemini where the skill lives and when to read it; `gemini extensions update ogdynamic` pulls changes.
+
+### In ChatGPT (MCP connector + skill)
+
+ChatGPT needs both halves: the MCP connector provides the ogdynamic tools, the skill teaches it how to design canvases.
+
+1. Add the connector — **Plugins → + → Add custom MCP server**, endpoint `https://ogdynamic.com/mcp/canvas`, sign in with OAuth (Business/Pro plans, web only).
+2. Add the skill per OpenAI's [build-skills](https://learn.chatgpt.com/docs/build-skills) flow — upload the `ogdynamic-canvas/` folder; our SKILL.md follows the same Agent Skills standard.
 
 ### With the skills CLI
 
