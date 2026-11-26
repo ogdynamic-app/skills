@@ -30,7 +30,7 @@ Reach for variants when one canvas needs same-size, same-field designs — light
 
 - **Create** — `create_canvas_variant`: `canvasId` (**base** id) + `variant_slug`; optional `name` (default `"{canvas} — {slug}"`) and `source` (a sibling variant id to copy; default = base).
 - **Edit** — `get_canvas {id: variantId}`, then `update_canvas {id: variantId, items, updated_at}` — a variant is edited like any canvas.
-- **Serve (public)** — the variant's `variant_url`: `/c/{baseId}?_variant={slug}&_updatedAt=…`.
+- **Serve (public)** — the variant's `variant_url`: `/c/{baseId}?_variant={slug}` — it never carries `_updatedAt`.
 - **Pin / publish (private)** — `create_render` with `canvasId` = **base** id + `variantId` → `/c/{baseId}?_key={hash}`.
 
 **Family rules**
@@ -49,7 +49,6 @@ Reach for variants when one canvas needs same-size, same-field designs — light
 - `create_render` and `list_renders` take the **base** `canvasId`; a render minted against a variant id gets a dead URL.
 - An unknown slug (typo, deleted variant) silently paints the **base** design — no error. Verify swaps visually.
 - Never combine `_variant` with `_key` (400). A render freezes *which* design is painted, not its content — edits to the variant still flow through.
-- `variant_url` ends in `_updatedAt=…` — the variant's `updated_at`, an inert param to the render service. After editing a variant, re-read it before handing the URL out.
 
 ## Document format
 
@@ -307,7 +306,7 @@ Adding a dark variant to that canvas (`01J…`):
 ```jsonc
 create_canvas_variant { canvasId: "01J…", variant_slug: "dark" }
 // → { id: "01K…", parent_id: "01J…", variant_slug: "dark",
-//     variant_url: "https://cdn.ogdynamic.com/c/01J…?_variant=dark&_updatedAt=…" }
+//     variant_url: "https://cdn.ogdynamic.com/c/01J…?_variant=dark" }
 
 get_canvas { id: "01K…" }                       // starts as a copy of the base — restyle it
 update_canvas { id: "01K…", updated_at: "…",    // same node ids, fieldIds, and 1200×630
