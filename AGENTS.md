@@ -4,7 +4,7 @@ This repo distributes agent **skills** for [ogdynamic](https://ogdynamic.com), t
 
 ## The skill
 
-- [`ogdynamic-canvas/SKILL.md`](ogdynamic-canvas/SKILL.md) — designing ogdynamic canvases (OG/social images): document format, validation limits, fonts, flex-first layout, dynamic overrides, renders. **Read it before authoring or editing any canvas `items` tree.**
+- [`ogdynamic-canvas/SKILL.md`](ogdynamic-canvas/SKILL.md) — designing ogdynamic canvases (OG/social images): document format, validation limits, fonts, flex-first layout, dynamic overrides, variants, renders. **Read it before authoring or editing any canvas `items` tree.**
 - [`ogdynamic-canvas/schema.json`](ogdynamic-canvas/schema.json) — machine-readable contract (every style property, enum, and cap). Validate documents against it before sending them to any tool.
 - `ogdynamic-canvas/scripts/fonts.py` — font checker. `fontFamily` must be an exact registered family from <https://cdn.ogdynamic.com/fonts/index.json>; verify with `check "<Family>"` (exit 1 = not registered).
 

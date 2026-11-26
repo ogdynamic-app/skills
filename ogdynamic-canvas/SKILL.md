@@ -1,25 +1,58 @@
 ---
 name: ogdynamic-canvas
-description: Design ogdynamic canvases (OG/social images) through the ogdynamic MCP tools — create from templates, edit the document JSON, override dynamic layers, publish renders. Use when creating, editing, or rendering ogdynamic canvases or OG images. Read before authoring a canvas items tree.
+description: Design ogdynamic canvases (OG/social images) through the ogdynamic MCP tools — create from templates, edit the document JSON, add variant designs (alternate themes behind one image URL), override dynamic layers, publish renders. Use when creating, editing, or rendering ogdynamic canvases, canvas variants, or OG images. Read before authoring a canvas items tree.
 ---
 
 # ogdynamic canvas skill
 
-A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp/png/jpeg. Edit it via the ogdynamic MCP tools; the same JSON hydrates losslessly in the web editor.
+A canvas is a background `Fill` plus a tree of nodes (`items`), rendered to webp/png/jpeg. Edit it via the ogdynamic MCP tools; the same JSON hydrates losslessly in the web editor. A canvas can carry **variants** — alternate designs served behind the same image URL.
 
 Full documentation: [ogdynamic.com/docs](https://ogdynamic.com/docs) — browse it when you need more detail: [#canvases](https://ogdynamic.com/docs#canvases) (tool workflow), [#document-format](https://ogdynamic.com/docs#document-format), [#image-urls](https://ogdynamic.com/docs#image-urls) (URL params & overrides), [#renders](https://ogdynamic.com/docs#renders).
 
 ## Workflow
 
-1. **Create** — `list_templates`, then `create_canvas` with `template: {ident_name}` (preferred; blank needs `width`+`height`).
-2. **Read first** — `get_canvas` returns the document plus `override_fields`. Always fetch before writing.
-3. **Edit** — `update_canvas` (also `name`, `width`, `height`, `status`: 1 = public, 2 = private). `items` **replaces the whole tree** — send it complete, never a patch.
-4. **Serve** — every canvas has a permanent `image_url`: `{OGDYNAMIC_URL}/c/{id}`. Public canvases render directly: `?{fieldId}=value&format=webp|png|jpeg&config[intent]=og|twitter` (URL-encode values). **Never `create_render` for a public canvas.**
-5. **Publish private canvases** — a private URL 403s; one `create_render` publishes it with overrides baked in. Renders are idempotent (SHA-256 of canvas + overrides) and **track the live canvas** — create a new one only for a *different* override set; check `list_renders` first.
+1. **Create** — `list_templates`, then `create_canvas` with a `name`: from `template: {ident_name}` (preferred — it takes the template's size and its name) or blank with `width`+`height` (1–1920 px). Never both.
+2. **Read first** — `get_canvas` returns the document, `override_fields`, `image_url`, and `updated_at`. Always fetch before writing.
+3. **Edit** — `update_canvas` (also `name`, `width`, `height`, `status`: `"public"` | `"private"`, `background`). `items` **replaces the whole tree** — send it complete, never a patch. Every call carries `updated_at` from your latest read; a conflict error means it changed elsewhere — `get_canvas` again, rebuild on the fresh `items`, retry with the fresh stamp.
+4. **Serve** — every canvas has a permanent `image_url`: `{OGDYNAMIC_URL}/c/{id}`. Public canvases render directly: `?{fieldId}=value&format=webp|png|jpeg&config[intent]=og|twitter` (URL-encode values); `_variant={slug}` paints one of its designs. **Never `create_render` just to get a URL for a public canvas.**
+5. **Publish private canvases** — a private URL 403s; one `create_render` publishes it with overrides baked in. Renders are idempotent (SHA-256 of canvas + override + design) and **track the live canvas** — create a new one only for a *different* override set or design; check `list_renders` first.
+
+## Variants
+
+A **variant** is a sibling design filed under a base canvas — a full document (background + `items`) with its own id. The base's URL picks the design with a reserved param, so an integration embeds the base id once and swaps designs by editing one param:
+
+```text
+https://cdn.ogdynamic.com/c/{baseId}?{fieldId}=value               // base design
+https://cdn.ogdynamic.com/c/{baseId}?_variant=dark&{fieldId}=value // variant "dark"
+```
+
+Reach for variants when one canvas needs same-size, same-field designs — light/dark themes, seasonal skins, A/B tests. For an unrelated canvas, `duplicate_canvas` (new id, new URL) instead.
+
+- **Create** — `create_canvas_variant`: `canvasId` (**base** id), `name`, and `variant_slug` for public families; optional `source` (a sibling variant id to copy; default = base).
+- **Edit** — `get_canvas {id: variantId}`, then `update_canvas {id: variantId, items, updated_at}` — a variant is edited like any canvas.
+- **Serve (public)** — the variant's `variant_url`: `/c/{baseId}?_variant={slug}` — it never carries `_updatedAt`.
+- **Pin / publish (private)** — `create_render` with `canvasId` = **base** id + `variantId` → `/c/{baseId}?_key={hash}`.
+
+**Family rules**
+
+- **`fieldId`s stay identical across the family** — they are the contract integrations send. `create_render` validates overrides against the *base* canvas's fields whichever `variantId` is frozen, and URL overrides only hit ids the painted design declares.
+- **Same `width`/`height` as the base.** Resizing never propagates — resize every member.
+- **Privacy lives on the base**: its `status` flips the whole family; `update_canvas` rejects `status` on a variant. A private family has no public handle — publish through `create_render` (a slug can't be added later, so set one up-front only if the family may go public).
+- **Slug**: `a-z`, `0-9`, `-`, `_`; 1–30 chars; starts and ends alphanumeric; unique per base. It is part of public URLs and **cannot be set or changed through MCP later** — pick it deliberately.
+- **One level only**: no variants of variants; `duplicate_canvas` rejects a variant (use `create_canvas_variant` + `source`) and copies a base's document without its variants.
+- **Reads**: `list_canvases` lists base canvases only (rows carry `variants_count`); `get_canvas` on a base adds `variants: [{id, name, variant_slug, updated_at}]` when it has any, on a variant adds `parent_id`, `variant_slug`, `variant_url`.
+- **Deletes**: `delete_canvas` on a base with variants errors until re-run with `confirm_variants: true` (removes the whole family). One variant by its id is an ordinary delete; renders that froze it fall back to the base design.
+
+**Gotchas**
+
+- A variant's `image_url` (`/c/{variantId}`) **404s** — only `variant_url` and keyed render URLs serve it.
+- `create_render` and `list_renders` take the **base** `canvasId`; a render minted against a variant id gets a dead URL.
+- An unknown slug (typo, deleted variant) silently paints the **base** design — no error. Verify swaps visually.
+- Never combine `_variant` with `_key` (400). A render freezes *which* design is painted, not its content — edits to the variant still flow through.
 
 ## Document format
 
-Top level: `width`, `height` (px, 1–2048), `background` (Fill), `items` (nodes).
+Top level: `width`, `height` (px, 1–1920), `background` (Fill), `items` (nodes).
 
 ### Fill
 
@@ -178,23 +211,24 @@ Validation is strict — a passing document always renders, so fix errors instea
 
 | Constraint                     | Limit                             |
 | ------------------------------ | --------------------------------- |
-| Canvas sides                   | 1–2048 px                         |
+| Canvas sides                   | 1–1920 px                         |
 | Nodes per doc                  | 500                               |
 | Nesting depth                  | 32                                |
 | `text`                         | 10,000 chars                      |
 | `src`                          | 2,048 chars                       |
 | `svg` (shape nodes)            | 20,480 bytes (20 KB), sanitized   |
 | `fieldId`                      | `[a-zA-Z0-9][a-zA-Z0-9_]{0,63}`   |
+| `variant_slug`                 | 1–30 chars, unique per base       |
 | Style values                   | scalar, ≤2000 chars each          |
 | Fill `color` / stop `color`    | ≤128 chars                        |
 | Fill `source`                  | ≤4096 chars                       |
-| `id` / `name`                  | ≤100 chars                        |
+| `id` / `name` (node, canvas)   | ≤100 chars                        |
 | Node size strings              | ≤64 chars                         |
 
 ## Dynamic overrides
 
 - **URL** (public canvases): `?{fieldId}=value` replaces the node's `text` (or `src` for an image node). Unknown keys are ignored.
-- **Renders** (`create_render` `override`): `{fieldId: {…}}` — text layers take `content`/`color`/`backgroundColor`, image layers `src`/`backgroundColor`, groups `backgroundColor`. Unknown fields or wrong props are **rejected** with the list of what the canvas actually has. Colors are hex (`#rgb`…`#rrggbbaa`; `transparent` for backgrounds); `content` ≤2000 chars.
+- **Renders** (`create_render` `override`, at least one entry): `{fieldId: {…}}` — **content-only**: text layers take `content` (≤2000 chars), image layers `src` (URL, ≤2048 chars). Groups take nothing, and colors/fills can't be overridden — they are static design; vary them with a variant. Unknown fields or wrong props are **rejected** with the list of what the canvas actually has (`get_canvas` → `override_fields`: `field`, `name`, `type`, `default`).
 - **Defaults must be publishable**: fill dynamic layers with realistic final-quality copy (fetch the target page's `og:title`/`og:description` when personalizing) — never lorem ipsum or placeholders.
 - **One template per site section, not per page** (home, blog post, product…): sibling pages vary only via query params; a new page must never require a new design.
 
@@ -207,31 +241,33 @@ Validation is strict — a passing document always renders, so fix errors instea
 - **Banners, email headers, decorative motifs**: draw them as shape nodes — a shape is just an `svg` string, so icons, blobs, geometric patterns, and decorative artwork render without photos or wrapper groups. Stay under the 20 KB cap, include a `viewBox`, and size the node with px `width`/`height`.
 - Pick a **three-role font set** from the registered table: display family for headings, body for descriptions, mono for kickers/tags/footers.
 - Mark main copy `dynamic: true` with readable `fieldId`s (`title`, `author`, `cta`); use readable unique ids (`tpl-title`).
+- **Variants restyle, never rewire**: start from the base (or a sibling) and change fills, colors, fonts, and layout — keep node `id`s, `fieldId`s, and canvas size.
 - Never: `x`/`y`, first-class `width`/`height` keys (sizes live in the style), `style.backgroundColor`/`style.backgroundImage` (backgrounds live in the Fill), kebab-case styles, CSS shorthands (`border:` → `borderWidth` + `borderStyle` + `borderColor`), nested style values, invented keys, `_`-prefixed fieldIds, `url()` in any background (photos are image-node `src`), hardcoded image-service URLs (use returned `image_url`s).
 
 ## Pre-flight QA
 
 - Fill objects complete (all three branches, `stops`); no shorthand/kebab keys; nothing outside the 11-key node list; sizes in the style, never first-class; image and shape nodes sized with px `width` + `height`; backgrounds in the Fill, never `style.backgroundColor`; shape nodes carry `svg` and never `children`/`dynamic`/`fieldId`.
 - No `text: ""`/`null`; dynamic copy has `maxLines` + ellipsis; footer pinned by flow, not `top`.
-- Render downloaded and visually checked with ≥2 variants (short + long), plus `config[intent]=twitter` when that target matters.
-- Exports roundtrip: strip server fields (`id`, `image_url`, `override_fields`, timestamps); no `null` values anywhere.
+- Render downloaded and visually checked with ≥2 content variations (short + long override values), plus `config[intent]=twitter` when that target matters; every variant checked through its own `variant_url`.
+- Exports roundtrip: strip server fields (`id`, `image_url`, `override_fields`, `parent_id`, `variant_slug`, `variants`, `variant_url`, timestamps); no `null` values anywhere.
 
 ## Tools
 
-| Tool               | Purpose                                                          |
-| ------------------ | ---------------------------------------------------------------- |
-| `list_templates`   | Starting points (`ident_name`, category, size); optional `category` |
-| `list_canvases`    | Your canvases; `status` public/private, `width`/`height` filters |
-| `get_canvas`       | Full document + `override_fields` + `image_url`                  |
-| `create_canvas`    | From `template` ident or blank (`width` + `height`); optional `name` |
-| `duplicate_canvas` | Copy by `id`                                                     |
-| `update_canvas`    | `name`, `width`, `height`, `status` (1/2), `background`, `items` |
-| `delete_canvas`    | Delete by `id`                                                   |
-| `create_render`    | Publish a private canvas / pin an override set: `canvasId` + `override` |
-| `list_renders`     | Your renders; optional `canvasId` filter                         |
-| `delete_render`    | Delete by hash `id`                                              |
+| Tool                    | Purpose                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| `list_templates`        | Starting points (`ident_name`, category, size); optional `category`                                     |
+| `list_canvases`         | Base canvases only; `status` public/private, `width`/`height` filters; rows carry `variants_count`      |
+| `get_canvas`            | Full document + `override_fields` + `image_url` + variant metadata                                      |
+| `create_canvas`         | Required `name`; from `template` ident or blank (`width` + `height`)                                    |
+| `create_canvas_variant` | New design under a base: `canvasId` + `name` + `variant_slug`, optional `source`                        |
+| `duplicate_canvas`      | Copy a base canvas by `id` — rejects variants, never copies them                                        |
+| `update_canvas`         | `name`, `width`, `height`, `status` (`"public"`/`"private"`), `background`, `items`; needs `updated_at` |
+| `delete_canvas`         | Delete by `id`; `confirm_variants: true` when it has variants                                           |
+| `create_render`         | Publish a private canvas / pin an override set: `canvasId` + `override`, optional `variantId`           |
+| `list_renders`          | Renders of one canvas (`canvasId` required); rows carry `variant_id`                                    |
+| `delete_render`         | Delete by hash `id`                                                                                     |
 
-All tools operate only on the authenticated user's own canvases.
+The three list tools are cursor-paginated — 10 rows per page by default, `limit` up to 200; pass `next_cursor` while `has_more` is true. All tools operate only on the authenticated user's own canvases.
 
 ## Example
 
@@ -263,4 +299,23 @@ All tools operate only on the authenticated user's own canvases.
               "text": "Ship OG images like a pro" }
         ] }]
 }
+```
+
+Adding a dark variant to that canvas (`01J…`):
+
+```jsonc
+create_canvas_variant { canvasId: "01J…", name: "Launch card — dark", variant_slug: "dark" }
+// → { id: "01K…", name: "Launch card — dark", parent_id: "01J…", variant_slug: "dark",
+//     variant_url: "https://cdn.ogdynamic.com/c/01J…?_variant=dark" }
+
+get_canvas { id: "01K…" }                       // starts as a copy of the base — restyle it
+update_canvas { id: "01K…", updated_at: "…",    // same node ids, fieldIds, and 1200×630
+    background: { /* dark gradient Fill */ },
+    items: [ /* the same tree with a dark palette */ ] }
+
+// One base id everywhere; only the design selector differs.
+// https://cdn.ogdynamic.com/c/01J…?title=Hello                  → base design
+// https://cdn.ogdynamic.com/c/01J…?_variant=dark&title=Hello    → dark design
+create_render { canvasId: "01J…", variantId: "01K…",
+                override: { title: { content: "Hello" } } }    // pinned → /c/01J…?_key=…
 ```
