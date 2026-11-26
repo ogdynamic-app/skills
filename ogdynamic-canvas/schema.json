@@ -140,7 +140,7 @@
                 "fieldId": {
                     "type": "string",
                     "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_]{0,63}$",
-                    "description": "Override key, required when dynamic is true. Word characters only; must not start with an underscore (reserved, e.g. _updatedAt, _key). Invalid on shape nodes."
+                    "description": "Override key, required when dynamic is true. Word characters only; must not start with an underscore (the `_` prefix is reserved for system params: _updatedAt, _variant, _key). Every variant of a canvas keeps the base's field ids — integrations send the same params to every design. Invalid on shape nodes."
                 },
                 "background": {
                     "$ref": "#/definitions/Fill",
