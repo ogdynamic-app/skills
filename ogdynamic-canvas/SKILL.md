@@ -28,7 +28,7 @@ https://cdn.ogdynamic.com/c/{baseId}?_variant=dark&{fieldId}=value // variant "d
 
 Reach for variants when one canvas needs same-size, same-field designs — light/dark themes, seasonal skins, A/B tests. For an unrelated canvas, `duplicate_canvas` (new id, new URL) instead.
 
-- **Create** — `create_canvas_variant`: `canvasId` (**base** id) + `variant_slug`; optional `name` (default `"{canvas} — {slug}"`) and `source` (a sibling variant id to copy; default = base).
+- **Create** — `create_canvas_variant`: `canvasId` (**base** id), `name`, and `variant_slug` for public families; optional `source` (a sibling variant id to copy; default = base).
 - **Edit** — `get_canvas {id: variantId}`, then `update_canvas {id: variantId, items, updated_at}` — a variant is edited like any canvas.
 - **Serve (public)** — the variant's `variant_url`: `/c/{baseId}?_variant={slug}` — it never carries `_updatedAt`.
 - **Pin / publish (private)** — `create_render` with `canvasId` = **base** id + `variantId` → `/c/{baseId}?_key={hash}`.
@@ -259,7 +259,7 @@ Validation is strict — a passing document always renders, so fix errors instea
 | `list_canvases`         | Base canvases only; `status` public/private, `width`/`height` filters; rows carry `variants_count`      |
 | `get_canvas`            | Full document + `override_fields` + `image_url` + variant metadata                                      |
 | `create_canvas`         | Required `name`; from `template` ident or blank (`width` + `height`)                                    |
-| `create_canvas_variant` | New design under a base: `canvasId` + `variant_slug`, optional `name`, `source`                         |
+| `create_canvas_variant` | New design under a base: `canvasId` + `name` + `variant_slug`, optional `source`                        |
 | `duplicate_canvas`      | Copy a base canvas by `id` — rejects variants, never copies them                                        |
 | `update_canvas`         | `name`, `width`, `height`, `status` (`"public"`/`"private"`), `background`, `items`; needs `updated_at` |
 | `delete_canvas`         | Delete by `id`; `confirm_variants: true` when it has variants                                           |
@@ -304,8 +304,8 @@ The three list tools are cursor-paginated — 10 rows per page by default, `limi
 Adding a dark variant to that canvas (`01J…`):
 
 ```jsonc
-create_canvas_variant { canvasId: "01J…", variant_slug: "dark" }
-// → { id: "01K…", parent_id: "01J…", variant_slug: "dark",
+create_canvas_variant { canvasId: "01J…", name: "Launch card — dark", variant_slug: "dark" }
+// → { id: "01K…", name: "Launch card — dark", parent_id: "01J…", variant_slug: "dark",
 //     variant_url: "https://cdn.ogdynamic.com/c/01J…?_variant=dark" }
 
 get_canvas { id: "01K…" }                       // starts as a copy of the base — restyle it
